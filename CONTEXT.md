@@ -61,7 +61,7 @@ The period, usually twelve months, that a Statement Package covers.
 _Avoid_: Year, cycle
 
 **Building Profile** (Gebäudeprofil):
-Facts about a building that the Metering Provider does not supply but the Ruleset needs, such as living area and whether a 70% consumption share is mandatory. Maintained by the Property Manager and reused across Billing Periods.
+Facts about a building that the Metering Provider does not supply but the Ruleset needs, such as living and heated area, whether a 70% consumption share is mandatory, whether the building is residential, and whether it is heritage-protected or must use district heating. It holds the true values that rules compare against what a statement claims. Maintained by the Property Manager and reused across Billing Periods.
 _Avoid_: Building settings, property data
 
 ### Checking

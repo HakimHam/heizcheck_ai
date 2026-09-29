@@ -28,7 +28,7 @@ A Property Manager uploads a building's Statement Package from the Metering Prov
 
 ### Building Profile
 
-Maintained by the Property Manager once per building and reused across Billing Periods. It holds at least the living area and whether §7 para 1 sentence 2 HeizkostenV (mandatory 70% consumption share) applies.
+Maintained by the Property Manager once per building and reused across Billing Periods. It holds the living area, the heated area, whether §7 para 1 sentence 2 HeizkostenV (mandatory 70% consumption share) applies, whether the building is residential, and whether it is heritage-protected or must use district heating (§9 CO2KostAufG). It holds the true values; the Extracted Figures hold only what the statement claims.
 
 ### Corrected packages
 
@@ -39,16 +39,16 @@ A corrected package from the Metering Provider is a new Statement Package for th
 | # | Rule | Source | Severity |
 |---|---|---|---|
 | C1 | Unit amounts add up to the building total (±€0.05 per Unit) | Consistency | Error |
-| C2 | Unit areas add up to the Building Profile area | Consistency | Error |
+| C2 | Unit areas add up to the Building Profile heated area, within a tolerance scaled to the printed precision: (Units + 1) × half the smallest printed step | Consistency | Error |
 | C3 | Billing Period is identical across the whole package | Consistency | Error |
-| H1 | Heating consumption share is 50–70%, or exactly 70% if §7 para 1 sentence 2 applies per the Building Profile | §7 HeizkostenV | Error |
+| H1 | Heating consumption share is 50–70%, or exactly 70% if §7 para 1 sentence 2 applies per the Building Profile; Warning that 70% may apply if the Building Profile doesn't say | §7 HeizkostenV | Error / Warning |
 | H2 | Hot water consumption share is 50–70% | §8 HeizkostenV | Error |
 | H3 | Every Cost Item maps to an Eligible Cost Type; unrecognised items raise a Warning | §7 para 2 HeizkostenV | Error / Warning |
 | H4 | Readings estimated for more than 25% of the area mean the statement must be split by area only | §9a para 2 HeizkostenV | Error |
 | H5 | Any estimated readings | §9a para 1 HeizkostenV | Warning |
-| K1 | The CO₂ split between landlord and tenant matches the tier for kg CO₂/m²/year | CO2KostAufG | Error |
-| K2 | CO₂ data is present in the statement at all | CO2KostAufG | Not assessable → Warning |
-| B1 | Billing Period end + 12 months is after the Dispatch Date: Error if the deadline has passed, Warning if fewer than 4 weeks are left | §556 para 3 BGB | Error / Warning |
+| K1 | The CO₂ split between landlord and tenant, and the stated kg CO₂/m²/year and tier, match the tier (kg/m²/year rounded to one decimal; tier limits scaled down for short Billing Periods; §9 reduction for heritage protection or district heating). Only for Billing Periods starting 1 Jan 2023 to 31 Dec 2027 | CO2KostAufG §§5, 7, 9, 11 | Error / Warning |
+| K2 | CO₂ data is present in the statement at all; if not, the Tenant may cut heating costs by 3% | CO2KostAufG §7 para 3–4 | Not assessable → Warning |
+| B1 | Billing Period end + 12 calendar months is after the Dispatch Date: Error if the deadline has passed, Warning if fewer than 4 weeks (28 days) are left | §556 para 3, §188 BGB | Error / Warning |
 
 - **Eligible Cost Types:** a fixed list derived from §7 para 2 HeizkostenV, plus a mapping table from Minol's Cost Item names to that list. The AI extracts item names exactly as written; the rule does the lookup.
 - **Severity:** Error means a definite breach; Warning means legally possible but needs the Property Manager's judgement. There is no informational level.
@@ -74,6 +74,7 @@ Measured on about 5–10 real Minol Statement Packages:
 - Plausibility checks against the previous year and similar Units.
 - Other formal requirements, e.g. the §6a HeizkostenV monthly consumption information.
 - Mixed-use and non-residential buildings.
+- The CO2KostAufG 2026 amendment's 50/50 CO₂ split for some gas, oil and LPG systems, for Billing Periods from 1 Jan 2028 (K1 is Not assessable for those until then).
 - Other Metering Providers: ista, Techem, Brunata.
 - Roles within an Organisation.
 - An explanation document for Tenants.
