@@ -276,7 +276,8 @@ Uploading a package for a building and Billing Period that already has one marks
   - An eval suite runs the Bedrock adapter against 5–10 real, anonymised Minol Statement Packages, with hand-labelled expected figures, including the CO₂ fields and the printed area precision. It reports the share of correct figures, with a target of ≥ 95%. It runs on demand, not in CI, because it needs real PDFs and AWS credentials.
   - A Zod contract test checks that malformed model output is rejected as a failed extraction.
   - All flow and UI work downstream uses the fake Extractor.
-- **Not tested at a seam:** the Confirm UI, PDF rendering and persistence are covered by a manual end-to-end run on one real package (target: under 10 minutes for a Property Manager).
+- **Seam 3: database access boundary (agreed 2026-09-30, ticket 01).** Tests apply the real migrations to an in-process Postgres (PGlite) on top of a shim of Supabase's auth schema and default grants. They then act as signed-in users (`auth.uid()`) and assert what each can read or write: isolation between Organisations, equal rights within one, and that every `public` table has row-level security. Each new Organisation-owned table gets an isolation test here.
+- **Not tested at a seam:** the Confirm UI, PDF rendering and the rest of persistence are covered by a manual end-to-end run on one real package (target: under 10 minutes for a Property Manager).
 - **Prior art:** none yet. The repo has no code, so these tests set the pattern.
 
 ## Out of Scope
