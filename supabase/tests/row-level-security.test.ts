@@ -23,7 +23,7 @@ it("is enabled on every table in the public schema", async () => {
 
 it("shows a visitor who is not signed in nothing", async () => {
   const anna = await db.signUp({ email: "anna@verwaltung-a.de", organisationName: "Verwaltung A" });
-  await db.asUser(anna, (tx) => tx.query("insert into buildings (address) values ('Hauptstraße 1, 10115 Berlin')"));
+  await db.asUser(anna, (tx) => tx.query("insert into buildings (address, residential) values ('Hauptstraße 1, 10115 Berlin', true)"));
 
   const visible = await db.asAnonymous(async (tx) => ({
     organisations: (await tx.query("select * from organisations")).rows,

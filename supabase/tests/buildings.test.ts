@@ -21,7 +21,7 @@ const listAddresses = (userId: string) =>
   );
 
 const addBuilding = (userId: string, address: string) =>
-  db.asUser(userId, (tx) => tx.query("insert into buildings (address) values ($1)", [address]));
+  db.asUser(userId, (tx) => tx.query("insert into buildings (address, residential) values ($1, true)", [address]));
 
 describe("buildings", () => {
   it("start empty for a new Organisation", async () => {
@@ -60,7 +60,7 @@ describe("buildings", () => {
     await attempt(db.asUser(ben, (tx) => tx.query("update buildings set address = 'Gekapert'")));
     await attempt(db.asUser(ben, (tx) => tx.query("delete from buildings")));
     await attempt(db.asUser(ben, (tx) =>
-      tx.query("insert into buildings (organisation_id, address) values ($1, 'Untergeschoben')", [annasOrganisationId]),
+      tx.query("insert into buildings (organisation_id, address, residential) values ($1, 'Untergeschoben', true)", [annasOrganisationId]),
     ));
     await attempt(db.asUser(ben, (tx) =>
       tx.query("update buildings set organisation_id = $1", [annasOrganisationId]),
