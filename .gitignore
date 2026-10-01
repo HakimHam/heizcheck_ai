@@ -4,3 +4,7 @@ node_modules/
 next-env.d.ts
 .agents/
 skills-lock.json
+.env
+.env*.local
+.vercel/
+coverage/
