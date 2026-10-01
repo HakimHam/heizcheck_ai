@@ -1,10 +1,10 @@
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
-import { signOut } from './auth/actions'
+import { signOut } from '../auth/actions'
 
-export const metadata = { title: 'Gebäude – HeizCheck' }
-
-export default async function BuildingsPage() {
+// The signed-in part of the app: everything behind the proxy's sign-in check.
+export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient()
   const [{ data: claims }, { data: organisation }] = await Promise.all([
     supabase.auth.getClaims(),
@@ -27,12 +27,7 @@ export default async function BuildingsPage() {
           </div>
         </div>
       </header>
-      <main>
-        <h1>Gebäude</h1>
-        <div className="empty">
-          <p>Sie haben noch keine Gebäude angelegt.</p>
-        </div>
-      </main>
+      <main>{children}</main>
     </>
   )
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createTestDatabase, type TestDatabase } from './test-database'
 
 let database: TestDatabase
@@ -19,6 +19,8 @@ beforeEach(async () => {
     [alice, carol],
   )
 })
+
+afterEach(() => database.db.close())
 
 const organisationNames = (db: TestDatabase['db']) =>
   db.query<{ name: string }>('select name from organisations order by name').then((r) =>
