@@ -31,9 +31,9 @@ Buildings outside scope are marked as such. See the spec: module 7 and the `Buil
 
 **2026-10-01 (implementation, branch `feature/ticket-claude_code_impl`):**
 
-- Migration `20261002000000_buildings.sql` puts the Building Profile on the `buildings` row. Unknown facts are `null`. `residential` is required in the form and never defaulted. RLS and the stored-as-unknown behaviour are proven by `supabase/tests/building-access.test.ts`.
+- Migration `20261001223731_buildings.sql` puts the Building Profile on the `buildings` row. Unknown facts are `null`. `residential` is required in the form and never defaulted. RLS and the stored-as-unknown behaviour are proven by `supabase/tests/building-access.test.ts`.
 - Form parsing (German decimals, three-state choices, German error messages) lives in `src/lib/building-form.ts`, tested at that seam.
 - Buildings can't be deleted from the app (delete is revoked). Statement Packages and Check Reports will hang off them and are kept for 4 years. Revisit if deleting an empty building is wanted.
 - Only "non-residential" is recorded for scope. Story 17's other conditions (no central heating, fewer than 3 Units) aren't captured anywhere yet; ticket 03 will need to decide where they come from.
 - **Open:** spec K1.4 maps heritage protection to "halved" and required district heating to "no split". The review questioned whether §9 CO2KostAufG really splits along those lines (as recalled: halved when one improvement is blocked, no split when both are). Check this against the statute before ticket 08.
-- **Open:** the migration isn't applied to the Supabase project yet (same as 01), so the screens have only been verified by `next build`, not clicked through.
+- 2026-10-02: migration applied to HeizCheck_AI (eu-central-1). Local migration files renamed to the versions Supabase recorded.
