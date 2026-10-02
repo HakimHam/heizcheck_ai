@@ -52,6 +52,11 @@ export const cleanPackage: CheckInput = {
   dispatchDate: '2026-03-15',
 }
 
+const withBuildingFigures = (overrides: Partial<Figures['building']>): CheckInput => ({
+  ...cleanPackage,
+  confirmedFigures: { ...cleanFigures, building: { ...cleanFigures.building, ...overrides } },
+})
+
 const withUnits = (units: UnitFigures[]): CheckInput => ({
   ...cleanPackage,
   confirmedFigures: { ...cleanFigures, units },
@@ -69,4 +74,8 @@ export const plantedErrors = {
       u.unitId === 'WE 01' ? { ...u, billingPeriod: { start: '2024-01-01', end: '2024-12-31' } } : u,
     ),
   ),
+  // Heating split 60/40: lawful in general, but the Building Profile requires exactly 70%.
+  H1: withBuildingFigures({ heatingConsumptionSharePct: 60 }),
+  // Hot water split 45/55, below the 50% minimum.
+  H2: withBuildingFigures({ hotWaterConsumptionSharePct: 45 }),
 } satisfies Partial<Record<RuleId, CheckInput>>

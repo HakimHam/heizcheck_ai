@@ -37,7 +37,7 @@ describe('checkPackage', () => {
   })
 
   it('reports the rules not built yet as Not assessable, with a reason', () => {
-    const built = ['C1', 'C2', 'C3']
+    const built = ['C1', 'C2', 'C3', 'H1', 'H2']
     const notYet = checkPackage(input()).results.filter((r) => !built.includes(r.rule))
     expect(notYet).toHaveLength(RULE_IDS.length - built.length)
     for (const r of notYet) {
@@ -234,5 +234,124 @@ describe('C3: every statement shares the Billing Period', () => {
 
   it('is Not assessable for a package without Unit Statements', () => {
     expect(result(input({}, []), 'C3').status).toBe('not_assessable')
+  })
+})
+
+describe('H1: heating consumption share (§7 Abs. 1 HeizkostenV)', () => {
+  const h1 = (share: number | null, mandatory70Pct: boolean | null) =>
+    result(input({ heatingConsumptionSharePct: share }, figures.units, { mandatory70Pct }), 'H1')
+
+  const error = {
+    severity: 'error',
+    legalReference: '§7 Abs. 1 HeizkostenV',
+    message: expect.stringMatching(/\S/),
+    affectedUnits: [],
+    amountAtStakeCents: null,
+  }
+  const warning = {
+    severity: 'warning',
+    legalReference: '§7 Abs. 1 Satz 2 HeizkostenV',
+    message: expect.stringContaining('Gebäudeprofil'),
+    affectedUnits: [],
+    amountAtStakeCents: null,
+  }
+
+  describe('when the Building Profile requires exactly 70%', () => {
+    it('passes at exactly 70%', () => {
+      expect(h1(70, true)).toEqual({ rule: 'H1', status: 'passed' })
+    })
+
+    it('raises an Error at 50%, which is otherwise lawful', () => {
+      expect(h1(50, true)).toEqual({
+        rule: 'H1',
+        status: 'finding',
+        findings: [
+          { ...error, legalReference: '§7 Abs. 1 Satz 2 HeizkostenV', message: expect.stringContaining('genau 70') },
+        ],
+      })
+    })
+
+    it('raises an Error just below 70%', () => {
+      expect(h1(69.9, true).status).toBe('finding')
+    })
+  })
+
+  describe('when the Building Profile says 70% is not required', () => {
+    it('passes at exactly 50% and exactly 70%', () => {
+      expect(h1(50, false)).toEqual({ rule: 'H1', status: 'passed' })
+      expect(h1(70, false)).toEqual({ rule: 'H1', status: 'passed' })
+    })
+
+    it('raises an Error just outside 50–70%', () => {
+      expect(h1(49.9, false)).toEqual({
+        rule: 'H1',
+        status: 'finding',
+        findings: [{ ...error, message: expect.stringContaining('50 % und 70 %') }],
+      })
+      expect(h1(70.1, false).status).toBe('finding')
+    })
+  })
+
+  describe('when the Building Profile leaves the 70% flag unset', () => {
+    it('warns that exactly 70% may be required, prompting to complete the Building Profile', () => {
+      expect(h1(60, null)).toEqual({ rule: 'H1', status: 'finding', findings: [warning] })
+      expect(h1(50, null)).toEqual({ rule: 'H1', status: 'finding', findings: [warning] })
+    })
+
+    it('raises the Error before the Warning when the share is outside 50–70%', () => {
+      expect(h1(75, null)).toEqual({ rule: 'H1', status: 'finding', findings: [error, warning] })
+    })
+
+    it('passes at exactly 70%, which is lawful either way', () => {
+      expect(h1(70, null)).toEqual({ rule: 'H1', status: 'passed' })
+    })
+  })
+
+  it('is Not assessable without the heating consumption share', () => {
+    expect(h1(null, true)).toEqual({
+      rule: 'H1',
+      status: 'not_assessable',
+      reason: expect.stringContaining('Heizung'),
+    })
+  })
+})
+
+describe('H2: hot water consumption share (§8 HeizkostenV)', () => {
+  const h2 = (share: number | null) => result(input({ hotWaterConsumptionSharePct: share }), 'H2')
+
+  it('passes at exactly 50% and exactly 70%', () => {
+    expect(h2(50)).toEqual({ rule: 'H2', status: 'passed' })
+    expect(h2(70)).toEqual({ rule: 'H2', status: 'passed' })
+  })
+
+  it('raises an Error just outside 50–70%', () => {
+    expect(h2(70.1)).toEqual({
+      rule: 'H2',
+      status: 'finding',
+      findings: [
+        {
+          severity: 'error',
+          legalReference: '§8 Abs. 1 HeizkostenV',
+          message: expect.stringContaining('70,1 %'),
+          affectedUnits: [],
+          amountAtStakeCents: null,
+        },
+      ],
+    })
+    expect(h2(49.9).status).toBe('finding')
+  })
+
+  it('is Not assessable when the package has no hot water share', () => {
+    expect(h2(null)).toEqual({
+      rule: 'H2',
+      status: 'not_assessable',
+      reason: expect.stringContaining('Warmwasser'),
+    })
+  })
+
+  it('ignores the 70% flag, which only applies to heating', () => {
+    expect(result(input({ hotWaterConsumptionSharePct: 50 }, figures.units, { mandatory70Pct: true }), 'H2').status).toBe(
+      'passed',
+    )
   })
 })
