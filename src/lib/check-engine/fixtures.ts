@@ -85,4 +85,19 @@ export const plantedErrors = {
       { name: 'Reparaturkosten', amountCents: 41_250 },
     ],
   }),
+  // Readings estimated for WE 01 and WE 02, two thirds of the area, yet the costs are split by consumption.
+  H4: withUnits(cleanFigures.units.map((u) => (u.unitId === 'WE 03' ? u : { ...u, estimated: true }))),
+  // Readings estimated for WE 01 only, which is resized to 40.5 m² (19%) so H4 still passes. The areas still add up.
+  H5: withUnits(
+    cleanFigures.units.map((u) => ({
+      ...u,
+      ...({ 'WE 01': { areaM2: 40.5, estimated: true }, 'WE 02': { areaM2: 100.5 } } as Record<string, Partial<UnitFigures>>)[u.unitId],
+    })),
+  ),
 } satisfies Partial<Record<RuleId, CheckInput>>
+
+/**
+ * Rules a planted error necessarily trips as well. An H4 error means readings
+ * were estimated, which H5 always warns about.
+ */
+export const alsoRaised: Partial<Record<RuleId, RuleId[]>> = { H4: ['H5'] }

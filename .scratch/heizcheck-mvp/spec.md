@@ -269,7 +269,7 @@ Uploading a package for a building and Billing Period that already has one marks
     - Missing split or tier, giving the 3% Warning.
     - A test that the tenant and landlord shares aren't swapped.
   - A "clean package" fixture where all 11 rules pass.
-  - **Planted-error fixtures:** a copy of a clean package for each rule, with one planted error, asserting that only that rule raises a Finding. This mirrors the success criterion "all deliberately planted errors are caught".
+  - **Planted-error fixtures:** a copy of a clean package for each rule, with one planted error, asserting that only that rule raises a Finding. This mirrors the success criterion "all deliberately planted errors are caught". One exception: an H4 error implies estimated readings, so its fixture also raises H5.
   - Invariants: exactly one Check Result per rule; deterministic output for the same input; the Ruleset version is stamped; every Finding has a legal reference.
   - Mapping-table tests for H3: known Minol names map, unknown names give a Warning, and ineligible names give an Error.
 - **Seam 2: Extractor.**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { type CheckInput, checkPackage, type RuleId } from '.'
-import { cleanPackage, plantedErrors } from './fixtures'
+import { alsoRaised, cleanPackage, plantedErrors } from './fixtures'
 
 const rulesWithFindings = (input: CheckInput): RuleId[] =>
   checkPackage(input)
@@ -13,8 +13,9 @@ describe('planted-error fixtures', () => {
   })
 
   for (const [rule, input] of Object.entries(plantedErrors)) {
-    it(`catches the error planted for ${rule}, and only that rule raises a Finding`, () => {
-      expect(rulesWithFindings(input)).toEqual([rule])
+    const also = alsoRaised[rule as RuleId] ?? []
+    it(`catches the error planted for ${rule}, and only that rule raises a Finding${also.length ? ` (besides ${also.join(', ')})` : ''}`, () => {
+      expect(rulesWithFindings(input)).toEqual([rule, ...also])
     })
   }
 })

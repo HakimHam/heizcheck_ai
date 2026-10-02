@@ -37,7 +37,7 @@ describe('checkPackage', () => {
   })
 
   it('reports the rules not built yet as Not assessable, with a reason', () => {
-    const built = ['C1', 'C2', 'C3', 'H1', 'H2', 'H3']
+    const built = ['C1', 'C2', 'C3', 'H1', 'H2', 'H3', 'H4', 'H5']
     const notYet = checkPackage(input()).results.filter((r) => !built.includes(r.rule))
     expect(notYet).toHaveLength(RULE_IDS.length - built.length)
     for (const r of notYet) {
@@ -436,5 +436,131 @@ describe('H3: Cost Items are Eligible Cost Types (§7 Abs. 2 HeizkostenV)', () =
 
   it('is Not assessable when the Building Statement lists no Cost Items', () => {
     expect(h3()).toEqual({ rule: 'H3', status: 'not_assessable', reason: expect.stringContaining('Kostenpositionen') })
+  })
+})
+
+describe('H4: area-only split when too much was estimated (§9a Abs. 2 HeizkostenV)', () => {
+  // 200 m² in all: WE 01 50 m², WE 02 100 m², WE 03 50 m².
+  const units = (estimated: Record<string, boolean | null>, areas: Record<string, number | null> = {}) =>
+    figures.units.map((u, i) => ({
+      ...u,
+      areaM2: u.unitId in areas ? areas[u.unitId] : [50, 100, 50][i],
+      estimated: u.unitId in estimated ? estimated[u.unitId] : false,
+    }))
+  const h4 = (
+    estimated: Record<string, boolean | null>,
+    allocationMethod: Figures['building']['allocationMethod'] = 'consumption_split',
+    areas: Record<string, number | null> = {},
+  ) => result(input({ allocationMethod }, units(estimated, areas)), 'H4')
+
+  it('passes when no reading was estimated', () => {
+    expect(h4({})).toEqual({ rule: 'H4', status: 'passed' })
+  })
+
+  it('passes at exactly 25% of the area estimated', () => {
+    expect(h4({ 'WE 01': true })).toEqual({ rule: 'H4', status: 'passed' })
+  })
+
+  it('raises an Error just above 25% when the costs are still split by consumption', () => {
+    expect(h4({ 'WE 01': true }, 'consumption_split', { 'WE 01': 50.1 })).toEqual({
+      rule: 'H4',
+      status: 'finding',
+      findings: [
+        {
+          severity: 'error',
+          legalReference: '§9a Abs. 2 HeizkostenV',
+          message: expect.stringMatching(/25,04\s%/),
+          affectedUnits: ['WE 01'],
+          amountAtStakeCents: null,
+        },
+      ],
+    })
+  })
+
+  it('computes the share as the area of Units with estimated readings ÷ the total area', () => {
+    const r = h4({ 'WE 01': true, 'WE 03': true })
+    expect(r.status === 'finding' && r.findings[0]).toMatchObject({
+      message: expect.stringMatching(/50\s%/),
+      affectedUnits: ['WE 01', 'WE 03'],
+    })
+  })
+
+  it('passes above 25% when the costs are split by area only', () => {
+    expect(h4({ 'WE 01': true, 'WE 02': true }, 'area_only')).toEqual({ rule: 'H4', status: 'passed' })
+  })
+
+  it('is Not assessable when a Unit’s estimated flag is missing, naming the Unit', () => {
+    expect(h4({ 'WE 02': null })).toEqual({
+      rule: 'H4',
+      status: 'not_assessable',
+      reason: expect.stringContaining('WE 02'),
+    })
+  })
+
+  it('is Not assessable without the allocation method', () => {
+    expect(h4({}, null)).toEqual({ rule: 'H4', status: 'not_assessable', reason: expect.stringContaining('Verteilung') })
+  })
+
+  it('is Not assessable when a Unit area is missing, naming the Unit', () => {
+    expect(h4({ 'WE 01': true }, 'consumption_split', { 'WE 03': null })).toEqual({
+      rule: 'H4',
+      status: 'not_assessable',
+      reason: expect.stringContaining('WE 03'),
+    })
+  })
+
+  it('is Not assessable for a package without Unit Statements', () => {
+    expect(result(input({}, []), 'H4').status).toBe('not_assessable')
+  })
+})
+
+describe('H5: estimated readings (§9a Abs. 1 HeizkostenV)', () => {
+  const h5 = (estimated: Record<string, boolean | null>, building: Partial<Figures['building']> = {}) =>
+    result(
+      input(
+        building,
+        figures.units.map((u) => ({ ...u, estimated: u.unitId in estimated ? estimated[u.unitId] : false })),
+      ),
+      'H5',
+    )
+
+  it('passes when no reading was estimated', () => {
+    expect(h5({})).toEqual({ rule: 'H5', status: 'passed' })
+  })
+
+  it('raises a Warning listing every Unit with estimated readings', () => {
+    expect(h5({ 'WE 01': true, 'WE 03': true })).toEqual({
+      rule: 'H5',
+      status: 'finding',
+      findings: [
+        {
+          severity: 'warning',
+          legalReference: '§9a Abs. 1 HeizkostenV',
+          message: expect.stringMatching(/WE 01, WE 03/),
+          affectedUnits: ['WE 01', 'WE 03'],
+          amountAtStakeCents: null,
+        },
+      ],
+    })
+  })
+
+  it('warns even when the costs are split by area only', () => {
+    expect(h5({ 'WE 02': true }, { allocationMethod: 'area_only' }).status).toBe('finding')
+  })
+
+  it('is Not assessable when a Unit’s estimated flag is missing, naming the Unit', () => {
+    expect(h5({ 'WE 01': true, 'WE 02': null })).toEqual({
+      rule: 'H5',
+      status: 'not_assessable',
+      reason: expect.stringContaining('WE 02'),
+    })
+  })
+
+  it('is Not assessable without the allocation method', () => {
+    expect(h5({ 'WE 01': true }, { allocationMethod: null }).status).toBe('not_assessable')
+  })
+
+  it('is Not assessable for a package without Unit Statements', () => {
+    expect(result(input({}, []), 'H5').status).toBe('not_assessable')
   })
 })
