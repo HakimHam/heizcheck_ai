@@ -2,10 +2,14 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { BuildingForm } from '@/components/building-form'
-import { OUT_OF_SCOPE_EXPLANATION } from '@/components/out-of-scope'
+import { OutOfScopeBanner } from '@/components/out-of-scope'
 import { buildingFormValues } from '@/lib/building-form'
 import { unknownFacts } from '@/lib/building-profile'
 import { getBuilding } from '@/lib/buildings'
+import { formatBillingPeriod, formatDate } from '@/lib/dates'
+import { PACKAGE_STATUS_LABELS } from '@/lib/package-status'
+import { CheckReportSummary } from '@/components/check-report-summary'
+import { listPackages } from '@/lib/statement-packages'
 import { saveBuilding } from '../actions'
 
 type Props = { params: Promise<{ id: string }> }
@@ -22,6 +26,7 @@ export default async function BuildingPage({ params }: Props) {
   if (!building) notFound()
 
   const missing = unknownFacts(building.profile)
+  const packages = await listPackages(building.id)
 
   return (
     <>
@@ -30,9 +35,7 @@ export default async function BuildingPage({ params }: Props) {
       <p className="muted">{building.address.postalCode} {building.address.city}</p>
 
       {!building.profile.residential ? (
-        <div className="banner banner-out-of-scope" role="note">
-          <strong>Außerhalb des Prüfumfangs.</strong> {OUT_OF_SCOPE_EXPLANATION}
-        </div>
+        <OutOfScopeBanner />
       ) : (
         missing.length > 0 && (
           <div className="banner" role="note">
@@ -43,10 +46,42 @@ export default async function BuildingPage({ params }: Props) {
       )}
 
       <section className="stack">
-        <h2>Abrechnungszeiträume</h2>
-        <div className="empty">
-          <p>Für dieses Gebäude wurden noch keine Abrechnungspakete hochgeladen.</p>
+        <div className="page-title">
+          <h2>Abrechnungspakete</h2>
+          {building.profile.residential && (
+            <Link href={`/gebaeude/${building.id}/hochladen`} className="button">
+              Abrechnungspaket hochladen
+            </Link>
+          )}
         </div>
+        {packages.length === 0 ? (
+          <div className="empty">
+            <p>Für dieses Gebäude wurden noch keine Abrechnungspakete hochgeladen.</p>
+          </div>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Abrechnungszeitraum</th>
+                <th>Versanddatum</th>
+                <th>Stand</th>
+                <th>Prüfbericht</th>
+              </tr>
+            </thead>
+            <tbody>
+              {packages.map((pkg) => (
+                <tr key={pkg.id}>
+                  <td>
+                    <Link href={`/pakete/${pkg.id}`}>{formatBillingPeriod(pkg.billingPeriod)}</Link>
+                  </td>
+                  <td>{formatDate(pkg.dispatchDate)}</td>
+                  <td>{PACKAGE_STATUS_LABELS[pkg.status]}</td>
+                  <td><CheckReportSummary results={pkg.results} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </section>
 
       <BuildingForm

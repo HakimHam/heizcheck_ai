@@ -8,5 +8,9 @@ export default defineConfig({
   test: {
     include: ['src/**/*.test.ts', 'supabase/**/*.test.ts'],
     testTimeout: 30_000,
+    // Each database test boots its own PGlite; booting several at once in
+    // parallel workers times out or crashes them.
+    hookTimeout: 30_000,
+    fileParallelism: false,
   },
 })

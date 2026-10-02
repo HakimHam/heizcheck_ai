@@ -5,8 +5,9 @@ import { PGlite } from '@electric-sql/pglite'
 const MIGRATIONS_DIR = join(import.meta.dirname, '..', 'migrations')
 
 // The parts of a Supabase database our migrations rely on: the `auth` schema,
-// `auth.uid()` and the `anon` / `authenticated` roles. Mirrors Supabase's own
-// definitions closely enough for RLS policies to behave the same way.
+// `auth.uid()`, the `anon` / `authenticated` roles and storage's buckets and
+// objects. Mirrors Supabase's own definitions closely enough for RLS policies
+// to behave the same way.
 const SUPABASE_STUB = `
   create role anon nologin;
   create role authenticated nologin;
@@ -20,6 +21,27 @@ const SUPABASE_STUB = `
     select nullif(current_setting('request.jwt.claims', true)::jsonb ->> 'sub', '')::uuid
   $$;
   grant usage on schema auth to anon, authenticated;
+
+  create schema storage;
+  create table storage.buckets (
+    id text primary key,
+    name text not null,
+    public boolean not null default false,
+    file_size_limit bigint,
+    allowed_mime_types text[]
+  );
+  create table storage.objects (
+    id uuid primary key default gen_random_uuid(),
+    bucket_id text references storage.buckets (id),
+    name text not null,
+    unique (bucket_id, name)
+  );
+  alter table storage.objects enable row level security;
+  create function storage.foldername(name text) returns text[] language sql immutable as $$
+    select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1]
+  $$;
+  grant usage on schema storage to anon, authenticated;
+  grant select, insert, update, delete on storage.objects to anon, authenticated;
   grant usage on schema public to anon, authenticated;
   alter default privileges in schema public
     grant select, insert, update, delete on tables to anon, authenticated;

@@ -2,11 +2,16 @@ import Link from 'next/link'
 import { unknownFacts } from '@/lib/building-profile'
 import { listBuildings } from '@/lib/buildings'
 import { OutOfScopeBadge } from '@/components/out-of-scope'
+import { CheckReportSummary } from '@/components/check-report-summary'
+import { formatBillingPeriod } from '@/lib/dates'
+import { listPackages, type PackageSummary } from '@/lib/statement-packages'
 
 export const metadata = { title: 'Gebäude – HeizCheck' }
 
 export default async function BuildingsPage() {
-  const buildings = await listBuildings()
+  const [buildings, packages] = await Promise.all([listBuildings(), listPackages()])
+  // Newest first, so a building's first checked package has its latest Check Report.
+  const packagesOf = (id: string) => packages.filter((pkg) => pkg.buildingId === id)
 
   return (
     <>
@@ -41,14 +46,39 @@ export default async function BuildingsPage() {
                     )
                   )}
                 </td>
-                {/* Filled in once Statement Packages and Check Reports exist (ticket 03). */}
-                <td className="muted">Noch keine</td>
-                <td className="muted">Noch keiner</td>
+                <td>
+                  <BillingPeriods packages={packagesOf(id)} />
+                </td>
+                <td>
+                  <LatestReport packages={packagesOf(id)} />
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
     </>
+  )
+}
+
+function BillingPeriods({ packages }: { packages: PackageSummary[] }) {
+  const periods = [...new Set(packages.map((pkg) => formatBillingPeriod(pkg.billingPeriod)))]
+  if (periods.length === 0) return <span className="muted">Noch keine</span>
+  return (
+    <ul className="plain">
+      {periods.map((period) => (
+        <li key={period}>{period}</li>
+      ))}
+    </ul>
+  )
+}
+
+function LatestReport({ packages }: { packages: PackageSummary[] }) {
+  const latest = packages.find((pkg) => pkg.results !== null)
+  if (!latest) return <span className="muted">Noch keiner</span>
+  return (
+    <Link href={`/pakete/${latest.id}`}>
+      <CheckReportSummary results={latest.results} />
+    </Link>
   )
 }

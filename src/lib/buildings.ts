@@ -2,6 +2,7 @@ import 'server-only'
 import { cache } from 'react'
 import type { Address, BuildingInput, BuildingProfile, Co2Reduction } from './building-profile'
 import { createClient } from './supabase/server'
+import { isUuid } from './uuid'
 
 export type Building = { id: string; address: Address; profile: BuildingProfile }
 
@@ -57,12 +58,9 @@ export async function listBuildings(): Promise<Building[]> {
   return (data as Row[]).map(fromRow)
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
 // Cached per request: the page and its metadata both read the building.
 export const getBuilding = cache(async (id: string): Promise<Building | null> => {
-  // A malformed id in the URL is simply not found, not a database error.
-  if (!UUID.test(id)) return null
+  if (!isUuid(id)) return null
   const supabase = await createClient()
   const { data, error } = await supabase.from('buildings').select(COLUMNS).eq('id', id).maybeSingle()
   if (error) throw error
@@ -78,7 +76,7 @@ export async function insertBuilding(building: BuildingInput): Promise<string> {
 
 /** Returns false when the building doesn't exist or belongs to another Organisation. */
 export async function updateBuilding(id: string, building: BuildingInput): Promise<boolean> {
-  if (!UUID.test(id)) return false
+  if (!isUuid(id)) return false
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('buildings')

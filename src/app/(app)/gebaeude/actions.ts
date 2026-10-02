@@ -4,20 +4,10 @@ import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { type BuildingFormState, parseBuildingForm } from '@/lib/building-form'
 import { insertBuilding, updateBuilding } from '@/lib/buildings'
-import { createClient } from '@/lib/supabase/server'
+import { submittedValues as submitted } from '@/lib/form-values'
+import { requireSignedIn } from '@/lib/session'
 
 const SAVE_FAILED = 'Das Gebäude konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.'
-
-const submitted = (form: FormData) =>
-  Object.fromEntries([...form.entries()].map(([name, value]) => [name, String(value)]))
-
-// Server Actions can be called directly, so check the session here as well as
-// in the proxy. RLS then limits every write to the user's Organisation.
-async function requireSignedIn() {
-  const supabase = await createClient()
-  const { data } = await supabase.auth.getClaims()
-  if (!data?.claims) redirect('/anmelden')
-}
 
 export async function createBuilding(
   _: BuildingFormState,

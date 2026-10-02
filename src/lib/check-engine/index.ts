@@ -1,0 +1,36 @@
+// The check engine: fixed, deterministic rules over the Confirmed Figures and
+// the Building Profile (ADR 0001). Pure: no I/O and no clock.
+import { c1 } from './rules/c1'
+import { type CheckInput, type CheckReportContent, type Rule, type RuleId, RULE_IDS } from './types'
+
+export * from './types'
+
+/** Bump whenever a rule, the cost type mapping or the CO₂ tier table changes. */
+export const RULESET_VERSION = '0.1.0'
+
+const notYetImplemented: Rule = () => ({
+  status: 'not_assessable',
+  reason: 'Diese Prüfung ist noch nicht umgesetzt.',
+})
+
+const RULES: Record<RuleId, Rule> = {
+  C1: c1,
+  C2: notYetImplemented,
+  C3: notYetImplemented,
+  H1: notYetImplemented,
+  H2: notYetImplemented,
+  H3: notYetImplemented,
+  H4: notYetImplemented,
+  H5: notYetImplemented,
+  K1: notYetImplemented,
+  K2: notYetImplemented,
+  B1: notYetImplemented,
+}
+
+/** One Check Result per rule, in catalogue order. */
+export function checkPackage(input: CheckInput): CheckReportContent {
+  return {
+    rulesetVersion: RULESET_VERSION,
+    results: RULE_IDS.map((rule) => ({ rule, ...RULES[rule](input) })),
+  }
+}
