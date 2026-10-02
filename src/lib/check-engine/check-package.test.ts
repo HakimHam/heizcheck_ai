@@ -37,7 +37,7 @@ describe('checkPackage', () => {
   })
 
   it('reports the rules not built yet as Not assessable, with a reason', () => {
-    const built = ['C1', 'C2', 'C3', 'H1', 'H2', 'H3', 'H4', 'H5']
+    const built = ['C1', 'C2', 'C3', 'H1', 'H2', 'H3', 'H4', 'H5', 'B1']
     const notYet = checkPackage(input()).results.filter((r) => !built.includes(r.rule))
     expect(notYet).toHaveLength(RULE_IDS.length - built.length)
     for (const r of notYet) {
@@ -584,5 +584,96 @@ describe('H5: estimated readings (§9a Abs. 1 HeizkostenV)', () => {
 
   it('is Not assessable for a package without Unit Statements', () => {
     expect(result(input({}, []), 'H5').status).toBe('not_assessable')
+  })
+})
+
+describe('B1: the §556 Abs. 3 BGB deadline', () => {
+  const b1 = (periodEnd: string | null, dispatchDate: string) =>
+    result(
+      {
+        ...input({ billingPeriod: periodEnd ? { start: '2025-01-01', end: periodEnd } : null }),
+        dispatchDate,
+      },
+      'B1',
+    )
+
+  it('passes when the Dispatch Date is 29 days before the deadline', () => {
+    expect(b1('2025-12-31', '2026-12-02')).toEqual({ rule: 'B1', status: 'passed' })
+  })
+
+  it('raises a Warning when the Dispatch Date is exactly 28 days before the deadline', () => {
+    expect(b1('2025-12-31', '2026-12-03')).toEqual({
+      rule: 'B1',
+      status: 'finding',
+      findings: [
+        {
+          severity: 'warning',
+          legalReference: '§556 Abs. 3 BGB',
+          message: expect.stringMatching(/31\.12\.2026.*28 Tage/),
+          affectedUnits: [],
+          amountAtStakeCents: null,
+        },
+      ],
+    })
+  })
+
+  it('raises a Warning when the Dispatch Date is the deadline day', () => {
+    const r = b1('2025-12-31', '2026-12-31')
+    expect(r.status === 'finding' && r.findings[0].severity).toBe('warning')
+  })
+
+  it('raises an Error when the Dispatch Date is the day after the deadline', () => {
+    expect(b1('2025-12-31', '2027-01-01')).toEqual({
+      rule: 'B1',
+      status: 'finding',
+      findings: [
+        {
+          severity: 'error',
+          legalReference: '§556 Abs. 3 BGB',
+          message: expect.stringMatching(/31\.12\.2026/),
+          affectedUnits: [],
+          amountAtStakeCents: null,
+        },
+      ],
+    })
+  })
+
+  it('adds 12 calendar months, not 365 days, across a leap year', () => {
+    // 365 days after 31.03.2027 would be 30.03.2028; the deadline is 31.03.2028.
+    const r = b1('2027-03-31', '2028-03-31')
+    expect(r.status === 'finding' && r.findings[0].severity).toBe('warning')
+  })
+
+  it('keeps the 28th when a period ending on 28 Feb runs into a leap year', () => {
+    expect(b1('2023-02-28', '2024-02-28').status).toBe('finding')
+    const r = b1('2023-02-28', '2024-02-29')
+    expect(r.status === 'finding' && r.findings[0].severity).toBe('error')
+  })
+
+  it('takes the last day of February when a period ends on 29 Feb', () => {
+    const onDeadline = b1('2024-02-29', '2025-02-28')
+    expect(onDeadline.status === 'finding' && onDeadline.findings[0].severity).toBe('warning')
+    const after = b1('2024-02-29', '2025-03-01')
+    expect(after.status === 'finding' && after.findings[0].severity).toBe('error')
+  })
+
+  it('keeps the 31st for a period ending on the 31st of a month', () => {
+    const onDeadline = b1('2025-05-31', '2026-05-31')
+    expect(onDeadline.status === 'finding' && onDeadline.findings[0].severity).toBe('warning')
+    const after = b1('2025-05-31', '2026-06-01')
+    expect(after.status === 'finding' && after.findings[0].severity).toBe('error')
+  })
+
+  it('judges only the Dispatch Date passed in, never today', () => {
+    // Long past by the system clock, yet well within the deadline for that Dispatch Date.
+    expect(b1('2000-12-31', '2001-03-15').status).toBe('passed')
+  })
+
+  it('is Not assessable without the Building Statement’s Billing Period', () => {
+    expect(b1(null, '2026-03-15')).toEqual({
+      rule: 'B1',
+      status: 'not_assessable',
+      reason: expect.stringContaining('Abrechnungszeitraum'),
+    })
   })
 })

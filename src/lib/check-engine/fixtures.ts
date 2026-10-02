@@ -94,6 +94,8 @@ export const plantedErrors = {
       ...({ 'WE 01': { areaM2: 40.5, estimated: true }, 'WE 02': { areaM2: 100.5 } } as Record<string, Partial<UnitFigures>>)[u.unitId],
     })),
   ),
+  // Sent on 04.01.2027, four days after the deadline of 31.12.2026.
+  B1: { ...cleanPackage, dispatchDate: '2027-01-04' },
 } satisfies Partial<Record<RuleId, CheckInput>>
 
 /**
