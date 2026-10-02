@@ -3,6 +3,7 @@ import type { BuildingProfile } from '../building-profile'
 import type { BillingPeriod, Figures } from '../figures'
 import { type CheckInput, type CheckResult, checkPackage, RULE_IDS } from '.'
 import { cleanFigures as figures, cleanProfile as profile } from './fixtures'
+import { CO2_TIERS } from './rules/co2'
 
 const input = (
   overrides: Partial<Figures['building']> = {},
@@ -675,14 +676,36 @@ describe('B1: the §556 Abs. 3 BGB deadline', () => {
 
 describe('K1: the CO₂ cost split follows the CO2KostAufG tier', () => {
   // A living area of 100 m² makes the kg CO₂/m²/year one hundredth of the total kg.
+  // Unless given, the statement prints the kg/m²/year the figures produce and the tier its split belongs to.
   const k1 = (
     co2: Partial<Figures['building']['co2']>,
-    { billingPeriod = figures.building.billingPeriod, livingAreaM2 = 100 }: { billingPeriod?: BillingPeriod | null; livingAreaM2?: number | null } = {},
-  ) =>
-    result(
-      input({ billingPeriod, co2: { ...figures.building.co2, ...co2 } }, figures.units, { livingAreaM2 }),
+    {
+      billingPeriod = figures.building.billingPeriod,
+      livingAreaM2 = 100,
+      co2Reduction = 'none',
+    }: {
+      billingPeriod?: BillingPeriod | null
+      livingAreaM2?: number | null
+      co2Reduction?: BuildingProfile['co2Reduction']
+    } = {},
+  ) => {
+    const { totalKg, statedSplit } = { ...figures.building.co2, ...co2 }
+    const stated = {
+      statedKgPerM2Year: !livingAreaM2
+        ? figures.building.co2.statedKgPerM2Year
+        : totalKg === null
+          ? null
+          : totalKg / livingAreaM2,
+      statedTier: CO2_TIERS.find((t) => t.landlordPct === statedSplit?.landlordPct)?.tier ?? null,
+    }
+    return result(
+      input({ billingPeriod, co2: { ...figures.building.co2, ...stated, ...co2 } }, figures.units, {
+        livingAreaM2,
+        co2Reduction,
+      }),
       'K1',
     )
+  }
   const split = (landlordPct: number) => ({ statedSplit: { landlordPct, tenantPct: 100 - landlordPct } })
 
   it('passes when the stated split matches the tier', () => {
@@ -691,7 +714,7 @@ describe('K1: the CO₂ cost split follows the CO2KostAufG tier', () => {
 
   it('raises an Error when the Tenant and Property Manager shares are swapped, with the difference at stake', () => {
     // 2,840 kg on 100 m² is 28.4 kg/m²/year, tier 5: Property Manager 40%, Tenants 60%.
-    expect(k1({ totalKg: 2_840, statedSplit: { landlordPct: 60, tenantPct: 40 }, costCents: 25_000 })).toEqual({
+    expect(k1({ totalKg: 2_840, statedSplit: { landlordPct: 60, tenantPct: 40 }, statedTier: 5, costCents: 25_000 })).toEqual({
       rule: 'K1',
       status: 'finding',
       findings: [
@@ -833,17 +856,132 @@ describe('K1: the CO₂ cost split follows the CO2KostAufG tier', () => {
     expect(r.status === 'finding' && r.findings[0].amountAtStakeCents).toBeNull()
   })
 
-  it('is Not assessable, not an Error, when the Building Profile records a §9 reduction', () => {
-    // A heritage building in tier 5 lawfully splits 20/80; district heating has no split.
-    for (const co2Reduction of ['heritage', 'district_heating'] as const) {
-      const r = result(
-        input({ co2: { ...figures.building.co2, statedSplit: { landlordPct: 20, tenantPct: 80 } } }, figures.units, {
-          co2Reduction,
+  describe('§9 reductions', () => {
+    // 2,840 kg on 100 m² is 28.4 kg/m²/year, tier 5: Property Manager 40%, Tenants 60%.
+    const tier5 = { totalKg: 2_840, statedTier: 5, costCents: 25_000 }
+
+    it('halves the Property Manager’s share for a heritage-protected building', () => {
+      const heritage = { co2Reduction: 'heritage' } as const
+      expect(k1({ ...tier5, ...split(20), statedReduction: 'halved' }, heritage).status).toBe('passed')
+      // Tier 10: 95% halved is 47.5%.
+      expect(
+        k1({ totalKg: 9_000, ...split(47.5), statedTier: 10, statedReduction: 'halved' }, heritage).status,
+      ).toBe('passed')
+    })
+
+    it('expects no split when the building must use district heating', () => {
+      expect(
+        k1({ ...tier5, ...split(0), statedReduction: 'no_split' }, { co2Reduction: 'district_heating' }).status,
+      ).toBe('passed')
+    })
+
+    it('raises the split Error when the statement doesn’t apply the recorded reduction', () => {
+      expect(k1({ ...tier5, ...split(40), statedReduction: 'none' }, { co2Reduction: 'heritage' })).toEqual({
+        rule: 'K1',
+        status: 'finding',
+        findings: [
+          {
+            severity: 'error',
+            legalReference: '§5 Abs. 1, §9 CO2KostAufG',
+            message: expect.stringMatching(/Stufe 5.*§9.*halbiert.*20 %.*80 %.*40 %.*60 %/),
+            affectedUnits: [],
+            amountAtStakeCents: 5_000,
+          },
+        ],
+      })
+      const r = k1({ ...tier5, ...split(40) }, { co2Reduction: 'district_heating' })
+      expect(r.status === 'finding' && r.findings).toEqual([
+        expect.objectContaining({
+          severity: 'error',
+          message: expect.stringMatching(/§9.*Fernwärme/),
+          amountAtStakeCents: 10_000,
         }),
-        'K1',
-      )
-      expect(r).toEqual({ rule: 'K1', status: 'not_assessable', reason: expect.stringContaining('§9') })
-    }
+      ])
+    })
+
+    it('warns when the statement claims a reduction the Building Profile doesn’t record', () => {
+      const warning = {
+        severity: 'warning',
+        legalReference: '§9 CO2KostAufG',
+        message: expect.stringMatching(/§9.*Gebäudeprofil/),
+        affectedUnits: [],
+        amountAtStakeCents: null,
+      }
+      // Halved without a recorded reduction: the split is wrong as well.
+      const halved = k1({ ...tier5, ...split(20), statedReduction: 'halved' })
+      expect(halved.status === 'finding' && halved.findings).toEqual([
+        expect.objectContaining({ severity: 'error', amountAtStakeCents: 5_000 }),
+        warning,
+      ])
+      // The wrong reduction: the profile records heritage protection, the statement claims no split.
+      const wrongKind = k1({ ...tier5, ...split(20), statedReduction: 'no_split' }, { co2Reduction: 'heritage' })
+      expect(wrongKind.status === 'finding' && wrongKind.findings).toEqual([
+        { ...warning, message: expect.stringMatching(/keine Aufteilung.*Gebäudeprofil verzeichnet Denkmalschutz/) },
+      ])
+      // Unknown in the Building Profile counts as not recorded.
+      const unknown = k1({ ...tier5, ...split(40), statedReduction: 'no_split' }, { co2Reduction: null })
+      expect(unknown.status === 'finding' && unknown.findings).toEqual([
+        { ...warning, message: expect.stringMatching(/Gebäudeprofil gibt nicht an.*ergänzen/) },
+      ])
+    })
+
+    it('doesn’t warn when the statement claims no reduction', () => {
+      expect(k1({ ...tier5, ...split(40), statedReduction: 'none' }).status).toBe('passed')
+      expect(k1({ ...tier5, ...split(40), statedReduction: null }).status).toBe('passed')
+    })
+  })
+
+  describe('the statement’s own kg/m²/year and tier (§5 Abs. 1)', () => {
+    const right = { totalKg: 2_840, statedKgPerM2Year: 28.4, statedTier: 5, ...split(40), costCents: 25_000 }
+
+    it('raises an Error when the stated kg/m²/year is wrong, even if the split is right', () => {
+      expect(k1({ ...right, statedKgPerM2Year: 29 })).toEqual({
+        rule: 'K1',
+        status: 'finding',
+        findings: [
+          {
+            severity: 'error',
+            legalReference: '§5 Abs. 1 CO2KostAufG',
+            message: expect.stringMatching(/29,0 kg.*28,4 kg.*Stufe 5/),
+            affectedUnits: [],
+            amountAtStakeCents: null,
+          },
+        ],
+      })
+    })
+
+    it('raises an Error when the stated tier is wrong, even if the split is right', () => {
+      const r = k1({ ...right, statedTier: 6 })
+      expect(r.status === 'finding' && r.findings).toEqual([
+        expect.objectContaining({ severity: 'error', message: expect.stringMatching(/Stufe 6.*Stufe 5/) }),
+      ])
+    })
+
+    it('compares the stated kg/m²/year rounded to one decimal', () => {
+      expect(k1({ ...right, statedKgPerM2Year: 28.43 }).status).toBe('passed')
+      expect(k1({ ...right, statedKgPerM2Year: 28.35 }).status).toBe('passed')
+      expect(k1({ ...right, statedKgPerM2Year: 28.45 }).status).toBe('finding')
+    })
+
+    it('expects the tier of the scaled-down limits for a short Billing Period', () => {
+      // 6.0 kg in 181 of 365 days is tier 2 (see above), not tier 1.
+      const halfYear = { billingPeriod: { start: '2025-01-01', end: '2025-06-30' } }
+      expect(k1({ totalKg: 600, statedKgPerM2Year: 6, statedTier: 2, ...split(10) }, halfYear).status).toBe('passed')
+      expect(k1({ totalKg: 600, statedKgPerM2Year: 6, statedTier: 1, ...split(10) }, halfYear).status).toBe('finding')
+    })
+
+    it('lists the split Error before the figures Error', () => {
+      const r = k1({ ...right, statedTier: 6, ...split(30) })
+      expect(r.status === 'finding' && r.findings.map((f) => [f.severity, f.amountAtStakeCents])).toEqual([
+        ['error', 2_500],
+        ['error', null],
+      ])
+    })
+
+    it('checks the stated tier even when the statement doesn’t show the split', () => {
+      const r = k1({ ...right, statedSplit: null, statedTier: 6 })
+      expect(r.status === 'finding' && r.findings.map((f) => f.severity)).toEqual(['error', 'warning'])
+    })
   })
 
   it('leaves a statement with no CO₂ data at all to K2', () => {

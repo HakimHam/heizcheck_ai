@@ -16,7 +16,7 @@ import { type CheckInput, type CheckReportContent, type Rule, type RuleId, RULE_
 export * from './types'
 
 /** Bump whenever a rule, the cost type mapping or the CO₂ tier table changes. */
-export const RULESET_VERSION = '0.8.0'
+export const RULESET_VERSION = '0.9.0'
 
 const RULES: Record<RuleId, Rule> = {
   C1: c1,

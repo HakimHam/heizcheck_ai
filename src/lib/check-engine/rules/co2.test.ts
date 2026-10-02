@@ -8,6 +8,7 @@ import { CO2_TIERS } from './co2'
 // an existing one.
 const FINGERPRINTS: Record<string, string> = {
   '0.8.0': '0ee3af70d916e76e4853d10fc67a93c5ac4bc7c45c751a24378a9c9c10fce84e',
+  '0.9.0': '0ee3af70d916e76e4853d10fc67a93c5ac4bc7c45c751a24378a9c9c10fce84e',
 }
 
 const fingerprint = () => createHash('sha256').update(JSON.stringify(CO2_TIERS)).digest('hex')
