@@ -78,4 +78,11 @@ export const plantedErrors = {
   H1: withBuildingFigures({ heatingConsumptionSharePct: 60 }),
   // Hot water split 45/55, below the 50% minimum.
   H2: withBuildingFigures({ hotWaterConsumptionSharePct: 45 }),
+  // €412.50 of the total is a repair, which Tenants can't be charged for. The items still add up.
+  H3: withBuildingFigures({
+    costItems: [
+      { name: 'Brennstoffkosten', amountCents: 258_750 },
+      { name: 'Reparaturkosten', amountCents: 41_250 },
+    ],
+  }),
 } satisfies Partial<Record<RuleId, CheckInput>>

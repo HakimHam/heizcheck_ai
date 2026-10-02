@@ -37,7 +37,7 @@ describe('checkPackage', () => {
   })
 
   it('reports the rules not built yet as Not assessable, with a reason', () => {
-    const built = ['C1', 'C2', 'C3', 'H1', 'H2']
+    const built = ['C1', 'C2', 'C3', 'H1', 'H2', 'H3']
     const notYet = checkPackage(input()).results.filter((r) => !built.includes(r.rule))
     expect(notYet).toHaveLength(RULE_IDS.length - built.length)
     for (const r of notYet) {
@@ -353,5 +353,88 @@ describe('H2: hot water consumption share (§8 HeizkostenV)', () => {
     expect(result(input({ hotWaterConsumptionSharePct: 50 }, figures.units, { mandatory70Pct: true }), 'H2').status).toBe(
       'passed',
     )
+  })
+})
+
+describe('H3: Cost Items are Eligible Cost Types (§7 Abs. 2 HeizkostenV)', () => {
+  const h3 = (...costItems: Figures['building']['costItems']) => result(input({ costItems }), 'H3')
+
+  it('passes when every Cost Item is a known eligible Minol name', () => {
+    expect(
+      h3(
+        { name: 'Brennstoffkosten', amountCents: 300_000 },
+        { name: 'Betriebsstrom', amountCents: 18_450 },
+        { name: 'Wartung', amountCents: 32_900 },
+        { name: 'Immissionsmessung', amountCents: 6_840 },
+        { name: 'Verbrauchsabrechnung Minol', amountCents: 49_500 },
+      ),
+    ).toEqual({ rule: 'H3', status: 'passed' })
+  })
+
+  it('ignores differences in whitespace and case', () => {
+    expect(h3({ name: '  VERBRAUCHSABRECHNUNG \t  minol ', amountCents: 49_500 })).toEqual({
+      rule: 'H3',
+      status: 'passed',
+    })
+  })
+
+  it('raises an Error for a Cost Item that is not eligible, with its amount at stake', () => {
+    expect(h3({ name: 'Brennstoffkosten', amountCents: 300_000 }, { name: 'Reparaturkosten', amountCents: 41_250 })).toEqual({
+      rule: 'H3',
+      status: 'finding',
+      findings: [
+        {
+          severity: 'error',
+          legalReference: '§7 Abs. 2 HeizkostenV',
+          message: expect.stringContaining('„Reparaturkosten“'),
+          affectedUnits: [],
+          amountAtStakeCents: 41_250,
+        },
+      ],
+    })
+  })
+
+  it('has no amount at stake for an ineligible Cost Item without an amount', () => {
+    const r = h3({ name: 'reparaturkosten', amountCents: null })
+    expect(r.status === 'finding' && r.findings[0]).toMatchObject({ severity: 'error', amountAtStakeCents: null })
+  })
+
+  it('raises a Warning naming a Cost Item that is not in the mapping table exactly as written', () => {
+    expect(h3({ name: 'Sonderreinigung  Dach', amountCents: 9_900 })).toEqual({
+      rule: 'H3',
+      status: 'finding',
+      findings: [
+        {
+          severity: 'warning',
+          legalReference: '§7 Abs. 2 HeizkostenV',
+          message: expect.stringContaining('„Sonderreinigung  Dach“'),
+          affectedUnits: [],
+          amountAtStakeCents: 9_900,
+        },
+      ],
+    })
+  })
+
+  it('normalises only whitespace and case: any other difference is an unknown name', () => {
+    for (const name of ['Brennstoffkosten.', 'Brennstoff-Kosten', 'Brennstoffkost', 'Geraetemiete']) {
+      const r = h3({ name, amountCents: 100 })
+      expect(r.status === 'finding' && r.findings.map((f) => f.severity)).toEqual(['warning'])
+    }
+  })
+
+  it('lists Errors before Warnings', () => {
+    const r = h3(
+      { name: 'Unbekannte Position', amountCents: 100 },
+      { name: 'Verwaltungskosten', amountCents: 200 },
+      { name: 'Brennstoffkosten', amountCents: 300 },
+    )
+    expect(r.status === 'finding' && r.findings.map((f) => [f.severity, f.amountAtStakeCents])).toEqual([
+      ['error', 200],
+      ['warning', 100],
+    ])
+  })
+
+  it('is Not assessable when the Building Statement lists no Cost Items', () => {
+    expect(h3()).toEqual({ rule: 'H3', status: 'not_assessable', reason: expect.stringContaining('Kostenpositionen') })
   })
 })

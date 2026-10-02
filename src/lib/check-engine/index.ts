@@ -5,12 +5,13 @@ import { c2 } from './rules/c2'
 import { c3 } from './rules/c3'
 import { h1 } from './rules/h1'
 import { h2 } from './rules/h2'
+import { h3 } from './rules/h3'
 import { type CheckInput, type CheckReportContent, type Rule, type RuleId, RULE_IDS } from './types'
 
 export * from './types'
 
 /** Bump whenever a rule, the cost type mapping or the CO₂ tier table changes. */
-export const RULESET_VERSION = '0.3.0'
+export const RULESET_VERSION = '0.4.0'
 
 const notYetImplemented: Rule = () => ({
   status: 'not_assessable',
@@ -23,7 +24,7 @@ const RULES: Record<RuleId, Rule> = {
   C3: c3,
   H1: h1,
   H2: h2,
-  H3: notYetImplemented,
+  H3: h3,
   H4: notYetImplemented,
   H5: notYetImplemented,
   K1: notYetImplemented,
