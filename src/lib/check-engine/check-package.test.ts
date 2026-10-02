@@ -36,13 +36,8 @@ describe('checkPackage', () => {
     expect(checkPackage(input())).toEqual(checkPackage(input()))
   })
 
-  it('reports the rules not built yet as Not assessable, with a reason', () => {
-    const built = ['C1', 'C2', 'C3', 'H1', 'H2', 'H3', 'H4', 'H5', 'B1']
-    const notYet = checkPackage(input()).results.filter((r) => !built.includes(r.rule))
-    expect(notYet).toHaveLength(RULE_IDS.length - built.length)
-    for (const r of notYet) {
-      expect(r).toEqual({ rule: r.rule, status: 'not_assessable', reason: expect.stringMatching(/\S/) })
-    }
+  it('passes every rule for the clean package', () => {
+    expect(checkPackage(input()).results.filter((r) => r.status !== 'passed')).toEqual([])
   })
 })
 
@@ -675,5 +670,227 @@ describe('B1: the §556 Abs. 3 BGB deadline', () => {
       status: 'not_assessable',
       reason: expect.stringContaining('Abrechnungszeitraum'),
     })
+  })
+})
+
+describe('K1: the CO₂ cost split follows the CO2KostAufG tier', () => {
+  // A living area of 100 m² makes the kg CO₂/m²/year one hundredth of the total kg.
+  const k1 = (
+    co2: Partial<Figures['building']['co2']>,
+    { billingPeriod = figures.building.billingPeriod, livingAreaM2 = 100 }: { billingPeriod?: BillingPeriod | null; livingAreaM2?: number | null } = {},
+  ) =>
+    result(
+      input({ billingPeriod, co2: { ...figures.building.co2, ...co2 } }, figures.units, { livingAreaM2 }),
+      'K1',
+    )
+  const split = (landlordPct: number) => ({ statedSplit: { landlordPct, tenantPct: 100 - landlordPct } })
+
+  it('passes when the stated split matches the tier', () => {
+    expect(result(input(), 'K1')).toEqual({ rule: 'K1', status: 'passed' })
+  })
+
+  it('raises an Error when the Tenant and Property Manager shares are swapped, with the difference at stake', () => {
+    // 2,840 kg on 100 m² is 28.4 kg/m²/year, tier 5: Property Manager 40%, Tenants 60%.
+    expect(k1({ totalKg: 2_840, statedSplit: { landlordPct: 60, tenantPct: 40 }, costCents: 25_000 })).toEqual({
+      rule: 'K1',
+      status: 'finding',
+      findings: [
+        {
+          severity: 'error',
+          legalReference: '§5 Abs. 1 CO2KostAufG',
+          message: expect.stringMatching(/28,4 kg.*Stufe 5.*40 %.*60 %/),
+          affectedUnits: [],
+          amountAtStakeCents: 5_000,
+        },
+      ],
+    })
+    expect(k1({ totalKg: 2_840, ...split(40) }).status).toBe('passed')
+  })
+
+  // [lower limit in kg CO₂/m²/year, the Property Manager's % from it and just below it], from the CO2KostAufG annex.
+  const edges: [number, number, number][] = [
+    [12, 10, 0], [17, 20, 10], [22, 30, 20], [27, 40, 30], [32, 50, 40],
+    [37, 60, 50], [42, 70, 60], [47, 80, 70], [52, 95, 80],
+  ]
+  for (const [limit, from, below] of edges) {
+    it(`puts ${limit},0 kg/m²/year in the tier from ${limit} and ${limit - 0.1} kg in the one below`, () => {
+      expect(k1({ totalKg: limit * 100, ...split(from) }).status).toBe('passed')
+      expect(k1({ totalKg: limit * 100, ...split(below) }).status).toBe('finding')
+      expect(k1({ totalKg: limit * 100 - 10, ...split(below) }).status).toBe('passed')
+      expect(k1({ totalKg: limit * 100 - 10, ...split(from) }).status).toBe('finding')
+    })
+  }
+
+  it('starts at tier 1 with no landlord share at 0 kg', () => {
+    expect(k1({ totalKg: 0, ...split(0) }).status).toBe('passed')
+  })
+
+  it('gives the tenant 5% in the top tier', () => {
+    expect(k1({ totalKg: 9_000, statedSplit: { landlordPct: 95, tenantPct: 5 } }).status).toBe('passed')
+    expect(k1({ totalKg: 9_000, statedSplit: { landlordPct: 95, tenantPct: 0 } }).status).toBe('finding')
+  })
+
+  it('rounds to one decimal before the tier lookup', () => {
+    // 11.96 rounds to 12.0, tier 2; 11.94 rounds to 11.9, tier 1.
+    expect(k1({ totalKg: 1_196, ...split(10) }).status).toBe('passed')
+    expect(k1({ totalKg: 1_194, ...split(0) }).status).toBe('passed')
+    // 11.95 rounds half up to 12.0.
+    expect(k1({ totalKg: 1_195, ...split(10) }).status).toBe('passed')
+  })
+
+  it('divides by the Building Profile’s living area, not the statement’s total area', () => {
+    // 2,840 kg on 200 m² is 14.2 kg/m²/year, tier 2, whatever the statement prints as its area.
+    expect(k1({ totalKg: 2_840, ...split(10) }, { livingAreaM2: 200 }).status).toBe('passed')
+  })
+
+  it('scales the tier limits down for a Billing Period shorter than 12 months', () => {
+    // 181 of 365 days: tier 2 starts at 12 × 181/365 ≈ 5.95 kg. The 6.0 kg measured are not scaled up.
+    const halfYear = { billingPeriod: { start: '2025-01-01', end: '2025-06-30' } }
+    expect(k1({ totalKg: 600, ...split(10) }, halfYear).status).toBe('passed')
+    expect(k1({ totalKg: 590, ...split(0) }, halfYear).status).toBe('passed')
+    // A full year keeps the limits: 6.0 kg is tier 1.
+    expect(k1({ totalKg: 600, ...split(0) }).status).toBe('passed')
+  })
+
+  it('counts a Billing Period across 29 Feb as a full year', () => {
+    expect(k1({ totalKg: 1_200, ...split(10) }, { billingPeriod: { start: '2024-01-01', end: '2024-12-31' } }).status)
+      .toBe('passed')
+  })
+
+  it('is Not assessable for a Billing Period starting before 1 Jan 2023 (§11 Abs. 2)', () => {
+    expect(k1({}, { billingPeriod: { start: '2022-12-31', end: '2023-12-30' } })).toEqual({
+      rule: 'K1',
+      status: 'not_assessable',
+      reason: expect.stringMatching(/01\.01\.2023.*§11 Abs\. 2 CO2KostAufG/),
+    })
+  })
+
+  it('assesses a Billing Period starting on 1 Jan 2023', () => {
+    expect(k1({ totalKg: 2_840, ...split(40) }, { billingPeriod: { start: '2023-01-01', end: '2023-12-31' } }).status)
+      .toBe('passed')
+  })
+
+  it('is Not assessable for a Billing Period starting on or after 1 Jan 2028 (2026 amendment)', () => {
+    expect(k1({}, { billingPeriod: { start: '2028-01-01', end: '2028-12-31' } })).toEqual({
+      rule: 'K1',
+      status: 'not_assessable',
+      reason: expect.stringContaining('01.01.2028'),
+    })
+  })
+
+  it('is Not assessable without the Billing Period or the living area', () => {
+    expect(k1({}, { billingPeriod: null })).toEqual({
+      rule: 'K1',
+      status: 'not_assessable',
+      reason: expect.stringContaining('Abrechnungszeitraum'),
+    })
+    expect(k1({}, { livingAreaM2: null })).toEqual({
+      rule: 'K1',
+      status: 'not_assessable',
+      reason: expect.stringContaining('Wohnfläche'),
+    })
+  })
+
+  // 3% of the Unit amounts of €1,000, €1,200 and €800.
+  const cut = {
+    severity: 'warning',
+    legalReference: '§7 Abs. 3, 4 CO2KostAufG',
+    message: expect.stringMatching(/3 %/),
+    affectedUnits: [],
+    amountAtStakeCents: 9_000,
+  }
+
+  it('warns that the Tenant may cut by 3% when the statement doesn’t show the split', () => {
+    expect(k1({ statedSplit: null })).toEqual({
+      rule: 'K1',
+      status: 'finding',
+      findings: [{ ...cut, message: expect.stringMatching(/Aufteilung.*3 %/) }],
+    })
+  })
+
+  it('warns when the statement doesn’t show the tier, even if the split is right', () => {
+    expect(k1({ totalKg: 2_840, ...split(40), statedTier: null })).toEqual({
+      rule: 'K1',
+      status: 'finding',
+      findings: [{ ...cut, message: expect.stringMatching(/Stufe.*3 %/) }],
+    })
+  })
+
+  it('warns when the statement doesn’t show how the tier was worked out', () => {
+    const r = k1({ totalKg: 2_840, ...split(40), statedKgPerM2Year: null })
+    expect(r.status === 'finding' && r.findings).toEqual([cut])
+    const noTotal = k1({ totalKg: null })
+    expect(noTotal.status === 'finding' && noTotal.findings).toEqual([cut])
+  })
+
+  it('lists the split Error before the 3% Warning', () => {
+    const r = k1({ totalKg: 2_840, ...split(30), statedTier: null })
+    expect(r.status === 'finding' && r.findings.map((f) => f.severity)).toEqual(['error', 'warning'])
+  })
+
+  it('has no amount at stake for the split Error without the CO₂ cost', () => {
+    const r = k1({ totalKg: 2_840, ...split(30), costCents: null })
+    expect(r.status === 'finding' && r.findings[0].amountAtStakeCents).toBeNull()
+  })
+
+  it('is Not assessable, not an Error, when the Building Profile records a §9 reduction', () => {
+    // A heritage building in tier 5 lawfully splits 20/80; district heating has no split.
+    for (const co2Reduction of ['heritage', 'district_heating'] as const) {
+      const r = result(
+        input({ co2: { ...figures.building.co2, statedSplit: { landlordPct: 20, tenantPct: 80 } } }, figures.units, {
+          co2Reduction,
+        }),
+        'K1',
+      )
+      expect(r).toEqual({ rule: 'K1', status: 'not_assessable', reason: expect.stringContaining('§9') })
+    }
+  })
+
+  it('leaves a statement with no CO₂ data at all to K2', () => {
+    expect(k1({ totalKg: null, statedSplit: null })).toEqual({
+      rule: 'K1',
+      status: 'not_assessable',
+      reason: expect.stringContaining('K2'),
+    })
+  })
+})
+
+describe('K2: the statement has CO₂ data', () => {
+  const k2 = (co2: Partial<Figures['building']['co2']>, billingPeriod = figures.building.billingPeriod) =>
+    result(input({ billingPeriod, co2: { ...figures.building.co2, ...co2 } }), 'K2')
+
+  it('passes when the statement gives the total CO₂ or the split', () => {
+    expect(k2({})).toEqual({ rule: 'K2', status: 'passed' })
+    expect(k2({ totalKg: null }).status).toBe('passed')
+    expect(k2({ statedSplit: null }).status).toBe('passed')
+  })
+
+  it('warns that the Tenant may cut by 3% when both the total CO₂ and the split are missing', () => {
+    expect(k2({ totalKg: null, statedSplit: null })).toEqual({
+      rule: 'K2',
+      status: 'finding',
+      findings: [
+        {
+          severity: 'warning',
+          legalReference: '§7 Abs. 3, 4 CO2KostAufG',
+          message: expect.stringMatching(/keine CO₂-Angaben.*3 %/),
+          affectedUnits: [],
+          amountAtStakeCents: 9_000,
+        },
+      ],
+    })
+  })
+
+  it('has no amount at stake when a Unit amount is missing', () => {
+    const units = figures.units.map((u) => (u.unitId === 'WE 01' ? { ...u, amountCents: null } : u))
+    const r = result(input({ co2: { ...figures.building.co2, totalKg: null, statedSplit: null } }, units), 'K2')
+    expect(r.status === 'finding' && r.findings[0].amountAtStakeCents).toBeNull()
+  })
+
+  it('is Not assessable outside the CO2KostAufG’s time window', () => {
+    expect(k2({ totalKg: null, statedSplit: null }, { start: '2022-01-01', end: '2022-12-31' }).status)
+      .toBe('not_assessable')
+    expect(k2({ totalKg: null, statedSplit: null }, { start: '2028-01-01', end: '2028-12-31' }).status)
+      .toBe('not_assessable')
   })
 })

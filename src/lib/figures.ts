@@ -17,6 +17,9 @@ export const STATED_REDUCTIONS = ['none', 'halved', 'no_split'] as const
 /** A §9 CO2KostAufG reduction as the statement claims it. */
 export type StatedReduction = (typeof STATED_REDUCTIONS)[number]
 
+/** The CO₂ cost shares of the Property Manager (`landlordPct`) and the Tenants. */
+export type Co2Split = { landlordPct: number; tenantPct: number }
+
 export type CostItem = {
   /** Verbatim, as the Metering Provider wrote it. */
   name: string
@@ -39,7 +42,7 @@ export type BuildingFigures = {
     statedKgPerM2Year: number | null
     /** 1–10 */
     statedTier: number | null
-    statedSplit: { landlordPct: number; tenantPct: number } | null
+    statedSplit: Co2Split | null
     costCents: number | null
     statedReduction: StatedReduction | null
   }

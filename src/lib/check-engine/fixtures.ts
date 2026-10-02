@@ -94,6 +94,21 @@ export const plantedErrors = {
       ...({ 'WE 01': { areaM2: 40.5, estimated: true }, 'WE 02': { areaM2: 100.5 } } as Record<string, Partial<UnitFigures>>)[u.unitId],
     })),
   ),
+  // 6,000 kg on 211.5 m² is 28.4 kg/m²/year, tier 5 (landlord 40%), yet the Tenants carry 70%. The tier is printed right.
+  K1: withBuildingFigures({
+    co2: { ...cleanFigures.building.co2, statedSplit: { landlordPct: 30, tenantPct: 70 } },
+  }),
+  // No CO₂ data at all: neither the total CO₂ nor the split.
+  K2: withBuildingFigures({
+    co2: {
+      totalKg: null,
+      statedKgPerM2Year: null,
+      statedTier: null,
+      statedSplit: null,
+      costCents: 25_000,
+      statedReduction: null,
+    },
+  }),
   // Sent on 04.01.2027, four days after the deadline of 31.12.2026.
   B1: { ...cleanPackage, dispatchDate: '2027-01-04' },
 } satisfies Partial<Record<RuleId, CheckInput>>

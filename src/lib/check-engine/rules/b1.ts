@@ -1,14 +1,9 @@
-import { formatDate } from '../../dates'
+import { daysBetween, formatDate } from '../../dates'
 import type { IsoDate } from '../../figures'
 import type { Rule } from '../types'
 
 /** Four weeks (§188 Abs. 2 BGB). The Warning starts this many days before the deadline. */
 const WARNING_DAYS = 28
-
-const toUtc = (date: IsoDate) => {
-  const [year, month, day] = date.split('-').map(Number)
-  return Date.UTC(year, month - 1, day)
-}
 
 const toIsoDate = (utc: number): IsoDate => new Date(utc).toISOString().slice(0, 10)
 
@@ -21,8 +16,6 @@ const deadline = (periodEnd: IsoDate): IsoDate => {
   const lastDayOfTargetMonth = new Date(Date.UTC(year + 1, month, 0)).getUTCDate()
   return toIsoDate(Date.UTC(year + 1, month - 1, Math.min(day, lastDayOfTargetMonth)))
 }
-
-const daysBetween = (from: IsoDate, to: IsoDate) => Math.round((toUtc(to) - toUtc(from)) / 86_400_000)
 
 /** B1: the Unit Statements go out by the §556 Abs. 3 BGB deadline, judged by the Dispatch Date passed in. */
 export const b1: Rule = ({ confirmedFigures: { building }, dispatchDate }) => {
