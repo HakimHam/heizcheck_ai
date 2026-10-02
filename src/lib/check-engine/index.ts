@@ -13,7 +13,7 @@ import { type CheckInput, type CheckReportContent, type Rule, type RuleId, RULE_
 export * from './types'
 
 /** Bump whenever a rule, the cost type mapping or the CO₂ tier table changes. */
-export const RULESET_VERSION = '0.5.0'
+export const RULESET_VERSION = '0.6.0'
 
 const notYetImplemented: Rule = () => ({
   status: 'not_assessable',

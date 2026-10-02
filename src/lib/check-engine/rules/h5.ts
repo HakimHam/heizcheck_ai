@@ -1,13 +1,15 @@
 import type { Rule } from '../types'
-import { estimatedUnits } from './estimated-readings'
+import { missingEstimatedFlags, NO_UNIT_STATEMENTS, withEstimatedReadings } from './estimated-readings'
 
-/** H5: any estimated readings are worth checking, so each one is listed. */
-export const h5: Rule = ({ confirmedFigures: { building, units } }) => {
-  const readings = estimatedUnits(units, building.allocationMethod)
-  if (readings.status === 'not_assessable') return readings
-  if (readings.estimated.length === 0) return { status: 'passed' }
+/** H5: any estimated readings are worth checking, so each one is listed. Needs every Unit's flag. */
+export const h5: Rule = ({ confirmedFigures: { units } }) => {
+  if (units.length === 0) return NO_UNIT_STATEMENTS
+  const missingFlags = missingEstimatedFlags(units)
+  if (missingFlags) return missingFlags
+  const estimated = withEstimatedReadings(units)
+  if (estimated.length === 0) return { status: 'passed' }
 
-  const ids = readings.estimated.map((unit) => unit.unitId)
+  const ids = estimated.map((unit) => unit.unitId)
   return {
     status: 'finding',
     findings: [

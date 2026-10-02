@@ -9,6 +9,7 @@ import { ELIGIBLE_COST_TYPES, MINOL_COST_ITEMS, normaliseCostItemName } from './
 const FINGERPRINTS: Record<string, string> = {
   '0.4.0': '9967d03eb59545e71fdd298d8762d34ceda580ff38ca771ae9c59d7933301768',
   '0.5.0': '9967d03eb59545e71fdd298d8762d34ceda580ff38ca771ae9c59d7933301768',
+  '0.6.0': '9967d03eb59545e71fdd298d8762d34ceda580ff38ca771ae9c59d7933301768',
 }
 
 const fingerprint = () =>

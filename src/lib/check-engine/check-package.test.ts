@@ -497,6 +497,27 @@ describe('H4: area-only split when too much was estimated (§9a Abs. 2 Heizkoste
     })
   })
 
+  it('still raises the Error when the Units known to be estimated already exceed 25%', () => {
+    const r = h4({ 'WE 01': true, 'WE 02': true, 'WE 03': null })
+    expect(r.status === 'finding' && r.findings[0]).toMatchObject({
+      severity: 'error',
+      message: expect.stringMatching(/mindestens 75\s%/),
+      affectedUnits: ['WE 01', 'WE 02'],
+    })
+  })
+
+  it('is Not assessable when the share known so far is 25% or less and a flag is missing', () => {
+    expect(h4({ 'WE 01': true, 'WE 03': null })).toEqual({
+      rule: 'H4',
+      status: 'not_assessable',
+      reason: expect.stringContaining('WE 03'),
+    })
+  })
+
+  it('passes with missing flags when the costs are split by area only', () => {
+    expect(h4({ 'WE 01': true, 'WE 02': null }, 'area_only')).toEqual({ rule: 'H4', status: 'passed' })
+  })
+
   it('is Not assessable without the allocation method', () => {
     expect(h4({}, null)).toEqual({ rule: 'H4', status: 'not_assessable', reason: expect.stringContaining('Verteilung') })
   })
@@ -556,8 +577,9 @@ describe('H5: estimated readings (§9a Abs. 1 HeizkostenV)', () => {
     })
   })
 
-  it('is Not assessable without the allocation method', () => {
-    expect(h5({ 'WE 01': true }, { allocationMethod: null }).status).toBe('not_assessable')
+  it('still warns without the allocation method, which it doesn’t need', () => {
+    const r = h5({ 'WE 01': true }, { allocationMethod: null })
+    expect(r.status === 'finding' && r.findings[0].affectedUnits).toEqual(['WE 01'])
   })
 
   it('is Not assessable for a package without Unit Statements', () => {
