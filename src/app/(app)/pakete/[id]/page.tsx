@@ -5,7 +5,7 @@ import { AutoRefresh } from '@/components/auto-refresh'
 import { CheckReportView } from '@/components/check-report-view'
 import { ConfirmForm } from '@/components/confirm-form'
 import { PackageProgress } from '@/components/package-progress'
-import { unknownFacts } from '@/lib/building-profile'
+import { formatAddress, unknownFacts } from '@/lib/building-profile'
 import { getBuilding } from '@/lib/buildings'
 import { formatBillingPeriod, formatDate } from '@/lib/dates'
 import { isExtractionStuck, PACKAGE_STATUS_LABELS } from '@/lib/package-status'
@@ -37,7 +37,7 @@ export default async function PackagePage({ params }: Props) {
       <p><Link href={`/gebaeude/${building.id}`}>← {building.address.street}</Link></p>
       <h1>Abrechnungspaket {billingPeriod && formatBillingPeriod(billingPeriod)}</h1>
       <p className="muted">
-        {building.address.street}, {building.address.postalCode} {building.address.city} · Versanddatum{' '}
+        {formatAddress(building.address)} · Versanddatum{' '}
         {formatDate(pkg.dispatchDate)} · {pkg.files.length}{' '}
         {pkg.files.length === 1 ? 'PDF-Datei' : 'PDF-Dateien'} · {PACKAGE_STATUS_LABELS[pkg.status]}
       </p>

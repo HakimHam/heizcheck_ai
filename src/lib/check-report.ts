@@ -15,6 +15,29 @@ export const RULE_TITLES: Record<RuleId, string> = {
   B1: 'Abrechnungsfrist',
 }
 
+export const SEVERITY_LABELS: Record<Finding['severity'], string> = {
+  error: 'Fehler',
+  warning: 'Prüfhinweis',
+}
+
+export const RESULT_LABELS: Record<CheckResult['status'], string> = {
+  passed: 'Bestanden',
+  finding: 'Befund',
+  not_assessable: 'Nicht prüfbar',
+}
+
+/** When a Check Report was created, in German time, e.g. "04.05.2026, 00:30". */
+export const formatCreatedAt = (timestamp: string) =>
+  new Intl.DateTimeFormat('de-DE', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Europe/Berlin',
+  }).format(new Date(timestamp))
+
+/** Who a Finding concerns, e.g. "WE 01, WE 02" or "ganzes Gebäude". */
+export const affectedUnitsLabel = (finding: Finding) =>
+  finding.affectedUnits.length > 0 ? finding.affectedUnits.join(', ') : 'ganzes Gebäude'
+
 const hasSeverity = (result: CheckResult, severity: Finding['severity']) =>
   result.status === 'finding' && result.findings.some((f) => f.severity === severity)
 

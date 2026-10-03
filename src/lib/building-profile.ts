@@ -15,6 +15,9 @@ export type Co2Reduction = (typeof CO2_REDUCTIONS)[number]
 
 export type Address = { street: string; postalCode: string; city: string }
 
+/** e.g. "Schillerstr. 17, 10625 Berlin" */
+export const formatAddress = ({ street, postalCode, city }: Address) => `${street}, ${postalCode} ${city}`
+
 export type BuildingInput = { address: Address; profile: BuildingProfile }
 
 // Residential is always known: the form requires it.

@@ -45,7 +45,7 @@ button {
   font: inherit; cursor: pointer; padding: 0.5rem 1rem; border-radius: 6px;
   border: 1px solid var(--accent); background: var(--accent); color: white;
 }
-button.secondary { background: transparent; color: var(--accent); }
+button.secondary, a.button.secondary { background: transparent; color: var(--accent); }
 button:disabled { opacity: 0.6; cursor: wait; }
 .error { color: var(--error); margin: 0; }
 .notice { color: var(--notice); margin: 0; }

@@ -1,26 +1,17 @@
-import type { CheckResult, Finding } from '@/lib/check-engine'
-import { orderForReport, RULE_TITLES, summarise, warningsLabel } from '@/lib/check-report'
+import type { Finding } from '@/lib/check-engine'
+import {
+  affectedUnitsLabel,
+  formatCreatedAt,
+  orderForReport,
+  RESULT_LABELS,
+  RULE_TITLES,
+  SEVERITY_LABELS,
+  summarise,
+  warningsLabel,
+} from '@/lib/check-report'
 import { formatDate } from '@/lib/dates'
 import { formatCents } from '@/lib/money'
 import type { CheckReport } from '@/lib/statement-packages'
-
-const SEVERITY_LABELS: Record<Finding['severity'], string> = {
-  error: 'Fehler',
-  warning: 'Prüfhinweis',
-}
-
-const RESULT_LABELS: Record<CheckResult['status'], string> = {
-  passed: 'Bestanden',
-  finding: 'Befund',
-  not_assessable: 'Nicht prüfbar',
-}
-
-const createdAt = (timestamp: string) =>
-  new Intl.DateTimeFormat('de-DE', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Europe/Berlin',
-  }).format(new Date(timestamp))
 
 function FindingView({ finding }: { finding: Finding }) {
   return (
@@ -30,7 +21,7 @@ function FindingView({ finding }: { finding: Finding }) {
       </div>
       <p>{finding.message}</p>
       <div className="muted">
-        Betroffen: {finding.affectedUnits.length > 0 ? finding.affectedUnits.join(', ') : 'ganzes Gebäude'}
+        Betroffen: {affectedUnitsLabel(finding)}
         {finding.amountAtStakeCents !== null && <> · Betrag: {formatCents(finding.amountAtStakeCents)}</>}
       </div>
     </li>
@@ -41,9 +32,14 @@ export function CheckReportView({ report }: { report: CheckReport }) {
   const { errors, warnings, notAssessable } = summarise(report.results)
   return (
     <section className="stack">
-      <h2>Prüfbericht</h2>
+      <div className="page-title">
+        <h2>Prüfbericht</h2>
+        <a className="button secondary" href={`/pakete/${report.statementPackageId}/pruefbericht`} download>
+          Als PDF herunterladen
+        </a>
+      </div>
       <p className="muted">
-        Erstellt am {createdAt(report.createdAt)} · Versanddatum {formatDate(report.dispatchDate)} ·
+        Erstellt am {formatCreatedAt(report.createdAt)} · Versanddatum {formatDate(report.dispatchDate)} ·
         Regelwerk {report.rulesetVersion}
       </p>
       <p>
