@@ -61,6 +61,7 @@ export type Figures = { building: BuildingFigures; units: UnitFigures[] }
 
 /** Where a figure appears: a PDF of the package, a 1-based page and a region on it. */
 export type SourceReference = {
+  /** The PDF's file name as uploaded; the Confirm screen finds the PDF by it. */
   file: string
   page: number
   /** [x, y, width, height] as fractions of the page, from the top left. */

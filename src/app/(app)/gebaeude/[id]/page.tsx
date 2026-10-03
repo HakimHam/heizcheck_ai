@@ -84,11 +84,13 @@ export default async function BuildingPage({ params }: Props) {
         )}
       </section>
 
-      <BuildingForm
-        action={saveBuilding.bind(null, building.id)}
-        initialValues={buildingFormValues(building)}
-        submitLabel="Speichern"
-      />
+      <section id="gebaeudeprofil">
+        <BuildingForm
+          action={saveBuilding.bind(null, building.id)}
+          initialValues={buildingFormValues(building)}
+          submitLabel="Speichern"
+        />
+      </section>
     </>
   )
 }

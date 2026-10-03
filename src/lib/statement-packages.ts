@@ -252,6 +252,36 @@ export const getPackage = cache(async (id: string): Promise<StatementPackage | n
   }
 })
 
+/** A PDF of a package with a short-lived link to read it in the browser. */
+export type PdfLink = { position: number; fileName: string; url: string }
+
+const PDF_LINK_SECONDS = 60 * 60
+
+/** Links to the package's PDFs, in order, for showing them next to the figures. */
+export async function getPdfLinks(packageId: string): Promise<PdfLink[]> {
+  if (!isUuid(packageId)) return []
+  const supabase = await createClient()
+  const { data: files, error } = await supabase
+    .from('statement_package_files')
+    .select('position, file_name, storage_path')
+    .eq('statement_package_id', packageId)
+    .order('position')
+  if (error) throw error
+  if (files.length === 0) return []
+  const { data: links, error: linkError } = await supabase.storage
+    .from(PDF_BUCKET)
+    .createSignedUrls(
+      files.map((file) => file.storage_path),
+      PDF_LINK_SECONDS,
+    )
+  if (linkError) throw linkError
+  return files.flatMap((file, i) => {
+    const url = links[i]?.signedUrl
+    if (!url) console.error(`No link to PDF ${file.storage_path}`, links[i]?.error)
+    return url ? [{ position: file.position, fileName: file.file_name, url }] : []
+  })
+}
+
 export async function getCheckReport(packageId: string): Promise<CheckReport | null> {
   if (!isUuid(packageId)) return null
   const supabase = await createClient()

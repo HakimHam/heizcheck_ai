@@ -9,7 +9,7 @@ import { unknownFacts } from '@/lib/building-profile'
 import { getBuilding } from '@/lib/buildings'
 import { formatBillingPeriod, formatDate } from '@/lib/dates'
 import { isExtractionStuck, PACKAGE_STATUS_LABELS } from '@/lib/package-status'
-import { getCheckReport, getPackage } from '@/lib/statement-packages'
+import { getCheckReport, getPackage, getPdfLinks } from '@/lib/statement-packages'
 import { confirmStatementPackage, extractStatementPackage } from '../actions'
 
 export const metadata: Metadata = { title: 'Abrechnungspaket – HeizCheck' }
@@ -20,9 +20,10 @@ export default async function PackagePage({ params }: Props) {
   // RLS hides other Organisations' packages, so they are simply not found.
   const pkg = await getPackage((await params).id)
   if (!pkg) notFound()
-  const [building, report] = await Promise.all([
+  const [building, report, pdfs] = await Promise.all([
     getBuilding(pkg.buildingId),
     pkg.status === 'checked' ? getCheckReport(pkg.id) : null,
+    pkg.status === 'awaiting_confirmation' ? getPdfLinks(pkg.id) : [],
   ])
   if (!building) notFound()
 
@@ -75,14 +76,16 @@ export default async function PackagePage({ params }: Props) {
         <>
           {missing.length > 0 && (
             <div className="banner" role="note">
-              <strong>Gebäudeprofil unvollständig:</strong> {missing.join(', ')}. Ergänzen Sie es{' '}
-              <Link href={`/gebaeude/${building.id}`}>im Gebäude</Link> vor dem Bestätigen, damit
-              weniger Prüfungen „nicht prüfbar“ sind.
+              <strong>Gebäudeprofil unvollständig:</strong> {missing.join(', ')}. Diese Angaben
+              stehen nicht in der Abrechnung, einzelne Prüfungen brauchen sie aber.{' '}
+              <Link href={`/gebaeude/${building.id}#gebaeudeprofil`}>Gebäudeprofil ergänzen</Link>,
+              dann hierher zurückkehren und bestätigen, damit weniger Prüfungen „nicht prüfbar“ sind.
             </div>
           )}
           <ConfirmForm
             action={confirmStatementPackage.bind(null, pkg.id)}
             extracted={pkg.extracted}
+            pdfs={pdfs}
           />
         </>
       )}
