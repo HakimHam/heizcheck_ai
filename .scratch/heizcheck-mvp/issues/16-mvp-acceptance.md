@@ -8,7 +8,7 @@
 
 See `docs/mvp-scope.md`: Success criteria.
 
-**Blocked by:** 04, 05, 06, 07, 08, 09, 10, 11, 12.
+**Blocked by:** 04, 05, 06, 07, 08, 09, 10, 11, 12, 17.
 
 **Status:** ready-for-human
 

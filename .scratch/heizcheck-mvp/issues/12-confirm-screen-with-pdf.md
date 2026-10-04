@@ -33,3 +33,5 @@
   - The pdf.js worker is emitted and runs in the production build.
 
   That package is left `awaiting_confirmation`.
+
+**2026-10-04 (contract change from ticket 11):** The real Extractor can't get reliable page coordinates from the model. So `SourceReference` gains `quote` (the figure's text exactly as printed), and code works out `bbox` by finding the quote in the page's pdf.js text layer. `bbox` becomes **optional**: when the quote isn't found, the reference has only `file` and `page`. Ticket 11 does the matching viewer change: with no `bbox`, `PdfSourceViewer` opens the page without a highlight. The `file` contract is unchanged, and ticket 11's Zod schema now enforces it.
