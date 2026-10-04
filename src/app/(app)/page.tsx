@@ -4,14 +4,17 @@ import { listBuildings } from '@/lib/buildings'
 import { OutOfScopeBadge } from '@/components/out-of-scope'
 import { CheckReportSummary } from '@/components/check-report-summary'
 import { formatBillingPeriod } from '@/lib/dates'
+import { currentPackages } from '@/lib/package-history'
 import { listPackages, type PackageSummary } from '@/lib/statement-packages'
 
 export const metadata = { title: 'Gebäude – HeizCheck' }
 
 export default async function BuildingsPage() {
   const [buildings, packages] = await Promise.all([listBuildings(), listPackages()])
-  // Newest first, so a building's first checked package has its latest Check Report.
-  const packagesOf = (id: string) => packages.filter((pkg) => pkg.buildingId === id)
+  // Current packages only, newest first, so a building's first checked package
+  // has its latest Check Report and a corrected package hides the one it replaced.
+  const current = currentPackages(packages)
+  const packagesOf = (id: string) => current.filter((pkg) => pkg.buildingId === id)
 
   return (
     <>

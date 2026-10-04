@@ -78,17 +78,16 @@ const report: CheckReport = {
     building: { ...cleanFigures.building, billingPeriod: { start: '2025-01-01', end: '2025-12-31' } },
   },
   buildingProfile: cleanProfile,
+  address: { street: 'Schillerstr. 17', postalCode: '10625', city: 'Berlin' },
   results,
   // 22:30 UTC is already the next day in Germany.
   createdAt: '2026-05-03T22:30:00+00:00',
 }
 
-const address = { street: 'Schillerstr. 17', postalCode: '10625', city: 'Berlin' }
-
 describe('renderCheckReportPdf', async () => {
-  const text = await pdfText(await renderCheckReportPdf(report, address))
+  const text = await pdfText(await renderCheckReportPdf(report))
 
-  it('is a Prüfbericht for the building, Billing Period, Dispatch Date and Ruleset version', () => {
+  it('is a Prüfbericht for the building as it was when checked, Billing Period, Dispatch Date and Ruleset version', () => {
     expect(text).toContain('Prüfbericht')
     expect(text).toContain('Schillerstr. 17, 10625 Berlin')
     expect(text).toContain('Abrechnungszeitraum 01.01.2025 – 31.12.2025')

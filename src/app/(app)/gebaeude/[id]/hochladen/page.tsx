@@ -19,7 +19,14 @@ export default async function UploadPage({ params }: Props) {
       <p><Link href={`/gebaeude/${building.id}`}>← {building.address.street}</Link></p>
       <h1>Abrechnungspaket hochladen</h1>
       {building.profile.residential ? (
-        <UploadForm buildingId={building.id} defaultDispatchDate={todayInGermany()} />
+        <>
+          <p className="muted">
+            Korrigiertes Paket vom Messdienstleister? Laden Sie es hier hoch. Sobald Sie die Werte
+            bestätigen, ersetzt es das bisherige Paket für denselben Abrechnungszeitraum; das
+            bisherige Paket und sein Prüfbericht bleiben erhalten.
+          </p>
+          <UploadForm buildingId={building.id} defaultDispatchDate={todayInGermany()} />
+        </>
       ) : (
         <OutOfScopeBanner />
       )}

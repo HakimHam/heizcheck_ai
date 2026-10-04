@@ -1,7 +1,7 @@
 import 'server-only'
 import { cache } from 'react'
 import { OUT_OF_SCOPE_EXPLANATION } from '@/components/out-of-scope'
-import type { BuildingProfile } from './building-profile'
+import type { Address, BuildingProfile } from './building-profile'
 import { getBuilding } from './buildings'
 import { checkPackage, type CheckResult } from './check-engine'
 import { appExtractor, type Extractor } from './extractor'
@@ -23,6 +23,8 @@ export type StatementPackage = {
   extracted: ExtractedFigures | null
   confirmedFigures: Figures | null
   files: { position: number; fileName: string }[]
+  /** The corrected package that replaced this one, or null if it is current. */
+  supersededBy: string | null
   createdAt: string
   updatedAt: string
 }
@@ -34,6 +36,8 @@ export type CheckReport = {
   dispatchDate: IsoDate
   confirmedFigures: Figures
   buildingProfile: BuildingProfile
+  /** The building's address when checked. */
+  address: Address
   results: CheckResult[]
   createdAt: string
 }
@@ -45,6 +49,7 @@ export type PackageSummary = {
   billingPeriod: BillingPeriod | null
   dispatchDate: IsoDate
   status: PackageStatus
+  supersededBy: string | null
   createdAt: string
   results: CheckResult[] | null
 }
@@ -216,6 +221,7 @@ type PackageRow = {
   extracted_figures: Figures | null
   extracted_sources: ExtractedFigures['sources'] | null
   confirmed_figures: Figures | null
+  superseded_by: string | null
   created_at: string
   updated_at: string
   statement_package_files: { position: number; file_name: string }[]
@@ -227,7 +233,7 @@ export const getPackage = cache(async (id: string): Promise<StatementPackage | n
   const { data, error } = await supabase
     .from('statement_packages')
     .select(
-      'id, building_id, dispatch_date, status, extracted_figures, extracted_sources, confirmed_figures, created_at, updated_at, statement_package_files (position, file_name)',
+      'id, building_id, dispatch_date, status, extracted_figures, extracted_sources, confirmed_figures, superseded_by, created_at, updated_at, statement_package_files (position, file_name)',
     )
     .eq('id', id)
     .maybeSingle()
@@ -247,6 +253,7 @@ export const getPackage = cache(async (id: string): Promise<StatementPackage | n
     files: row.statement_package_files
       .map((f) => ({ position: f.position, fileName: f.file_name }))
       .sort((a, b) => a.position - b.position),
+    supersededBy: row.superseded_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -288,7 +295,7 @@ export async function getCheckReport(packageId: string): Promise<CheckReport | n
   const { data, error } = await supabase
     .from('check_reports')
     .select(
-      'id, statement_package_id, ruleset_version, dispatch_date, confirmed_figures, building_profile, results, created_at',
+      'id, statement_package_id, ruleset_version, dispatch_date, confirmed_figures, building_profile, address, results, created_at',
     )
     .eq('statement_package_id', packageId)
     .maybeSingle()
@@ -301,6 +308,7 @@ export async function getCheckReport(packageId: string): Promise<CheckReport | n
       dispatchDate: data.dispatch_date,
       confirmedFigures: data.confirmed_figures,
       buildingProfile: data.building_profile,
+      address: data.address,
       results: data.results,
       createdAt: data.created_at,
     }
@@ -312,6 +320,7 @@ type SummaryRow = {
   building_id: string
   dispatch_date: string
   status: PackageStatus
+  superseded_by: string | null
   created_at: string
   extracted_period: BillingPeriod | null
   confirmed_period: BillingPeriod | null
@@ -324,7 +333,7 @@ export async function listPackages(buildingId?: string): Promise<PackageSummary[
   let query = supabase
     .from('statement_packages')
     .select(
-      'id, building_id, dispatch_date, status, created_at, extracted_period:extracted_figures->building->billingPeriod, confirmed_period:confirmed_figures->building->billingPeriod, check_reports (results)',
+      'id, building_id, dispatch_date, status, superseded_by, created_at, extracted_period:extracted_figures->building->billingPeriod, confirmed_period:confirmed_figures->building->billingPeriod, check_reports (results)',
     )
     .order('created_at', { ascending: false })
   if (buildingId) {
@@ -341,6 +350,7 @@ export async function listPackages(buildingId?: string): Promise<PackageSummary[
       billingPeriod: row.confirmed_period ?? row.extracted_period,
       dispatchDate: row.dispatch_date,
       status: row.status,
+      supersededBy: row.superseded_by,
       createdAt: row.created_at,
       results: report?.results ?? null,
     }

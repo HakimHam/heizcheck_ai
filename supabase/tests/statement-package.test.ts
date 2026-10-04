@@ -29,6 +29,14 @@ const createBuilding = (db: Db, residential = true) =>
     )
     .then((r) => r.rows[0].id)
 
+const ADDRESS = { street: 'Lindenstraße 5', postalCode: '10115', city: 'Berlin' }
+const PERIOD_2025 = { start: '2025-01-01', end: '2025-12-31' }
+const PERIOD_2024 = { start: '2024-01-01', end: '2024-12-31' }
+const confirmedFor = (billingPeriod: object | null) => ({
+  building: { ...CONFIRMED.building, billingPeriod },
+  units: [],
+})
+
 const createPackage = (db: Db, buildingId = building) =>
   db
     .query<{ id: string }>(
@@ -46,8 +54,8 @@ const setStatus = (db: Db, id: string, status: string, extra = '') =>
   db.query(`update statement_packages set status = $2 ${extra} where id = $1`, [id, status])
 
 /** Runs a package through extraction to awaiting_confirmation. */
-async function extracted(db: Db) {
-  const id = await createPackage(db)
+async function extracted(db: Db, buildingId = building) {
+  const id = await createPackage(db, buildingId)
   await setStatus(db, id, 'extracting')
   await db.query(
     `update statement_packages
@@ -58,11 +66,11 @@ async function extracted(db: Db) {
   return id
 }
 
-const confirm = (db: Db, id: string, profile: object = PROFILE) =>
+const confirm = (db: Db, id: string, profile: object = PROFILE, figures: object = CONFIRMED) =>
   db
     .query<{ id: string }>(
       'select confirm_statement_package($1, $2, $3, $4, $5) as id',
-      [id, JSON.stringify(CONFIRMED), JSON.stringify(profile), '0.1.0', JSON.stringify(RESULTS)],
+      [id, JSON.stringify(figures), JSON.stringify(profile), '0.1.0', JSON.stringify(RESULTS)],
     )
     .then((r) => r.rows[0].id)
 
@@ -221,20 +229,21 @@ describe('Check Report', () => {
     database.asUser(user, (db) =>
       db
         .query<Record<string, unknown>>(
-          `select ruleset_version, dispatch_date::text, confirmed_figures, building_profile, results
+          `select ruleset_version, dispatch_date::text, confirmed_figures, building_profile, address, results
              from check_reports where id = $1`,
           [id],
         )
         .then((r) => r.rows[0]),
     )
 
-  it('records the Confirmed Figures, Building Profile, Ruleset version and Dispatch Date', async () => {
+  it('records the Confirmed Figures, Building Profile, address, Ruleset version and Dispatch Date', async () => {
     const reportId = await database.asUser(alice, async (db) => confirm(db, await extracted(db)))
     expect(await report(alice, reportId)).toEqual({
       ruleset_version: '0.1.0',
       dispatch_date: '2026-10-02',
       confirmed_figures: CONFIRMED,
       building_profile: PROFILE,
+      address: ADDRESS,
       results: RESULTS,
     })
   })
@@ -258,6 +267,14 @@ describe('Check Report', () => {
       db.query('update buildings set living_area_m2 = 999 where id = $1', [building]),
     )
     expect((await report(alice, reportId))?.building_profile).toEqual(PROFILE)
+  })
+
+  it("keeps the building's address as it was when checked", async () => {
+    const reportId = await database.asUser(alice, async (db) => confirm(db, await extracted(db)))
+    await database.asUser(alice, (db) =>
+      db.query(`update buildings set street = 'Lindenstr. 5a' where id = $1`, [building]),
+    )
+    expect((await report(alice, reportId))?.address).toEqual(ADDRESS)
   })
 
   it('is stored only by confirming', async () => {
@@ -289,5 +306,107 @@ describe('Check Report', () => {
         db.query('select id from statement_packages').then((r) => r.rows),
       ),
     ).toEqual([])
+  })
+})
+
+describe('Supersession', () => {
+  const supersededBy = (id: string) =>
+    database.asUser(alice, (db) =>
+      db
+        .query<{ superseded_by: string | null }>(
+          'select superseded_by from statement_packages where id = $1',
+          [id],
+        )
+        .then((r) => r.rows[0].superseded_by),
+    )
+
+  /** Uploads, extracts and confirms a package with the given Billing Period. */
+  const checked = (period: object | null, buildingId = building) =>
+    database.asUser(alice, async (db) => {
+      const id = await extracted(db, buildingId)
+      await confirm(db, id, PROFILE, confirmedFor(period))
+      return id
+    })
+
+  it('supersedes the older package once a correction for the same Billing Period is confirmed', async () => {
+    const original = await checked(PERIOD_2025)
+    const correction = await checked(PERIOD_2025)
+    expect(await supersededBy(original)).toBe(correction)
+    expect(await supersededBy(correction)).toBeNull()
+  })
+
+  it('keeps the Superseded Package and its Check Report', async () => {
+    const original = await checked(PERIOD_2025)
+    await checked(PERIOD_2025)
+    expect(await database.asUser(alice, (db) => statusOf(db, original))).toBe('checked')
+    const reports = await database.asUser(alice, (db) =>
+      db
+        .query('select id from check_reports where statement_package_id = $1', [original])
+        .then((r) => r.rows),
+    )
+    expect(reports).toHaveLength(1)
+  })
+
+  it('leaves the older package current until the correction is confirmed', async () => {
+    const original = await checked(PERIOD_2025)
+    await database.asUser(alice, (db) => extracted(db))
+    expect(await supersededBy(original)).toBeNull()
+  })
+
+  it('does not supersede a package for another Billing Period or building', async () => {
+    const other = await database.asUser(alice, (db) => createBuilding(db))
+    const earlier = await checked(PERIOD_2024)
+    const elsewhere = await checked(PERIOD_2025, other)
+    await checked(PERIOD_2025)
+    expect(await supersededBy(earlier)).toBeNull()
+    expect(await supersededBy(elsewhere)).toBeNull()
+  })
+
+  it('does not supersede when the Billing Period is unknown', async () => {
+    const first = await checked(null)
+    await checked(null)
+    expect(await supersededBy(first)).toBeNull()
+  })
+
+  it('keeps the history as a chain: each correction supersedes the one before', async () => {
+    const first = await checked(PERIOD_2025)
+    const second = await checked(PERIOD_2025)
+    const third = await checked(PERIOD_2025)
+    expect(await supersededBy(first)).toBe(second)
+    expect(await supersededBy(second)).toBe(third)
+    expect(await supersededBy(third)).toBeNull()
+  })
+
+  it('treats an older upload confirmed after its correction as superseded', async () => {
+    const older = await database.asUser(alice, (db) => extracted(db))
+    const correction = await checked(PERIOD_2025)
+    await database.asUser(alice, (db) => confirm(db, older, PROFILE, confirmedFor(PERIOD_2025)))
+    expect(await supersededBy(older)).toBe(correction)
+    expect(await supersededBy(correction)).toBeNull()
+  })
+
+  it('cannot be set or undone directly', async () => {
+    const original = await checked(PERIOD_2025)
+    const correction = await checked(PERIOD_2025)
+    const other = await checked(PERIOD_2024)
+    await expect(
+      database.asUser(alice, (db) =>
+        db.query('update statement_packages set superseded_by = $2 where id = $1', [other, correction]),
+      ),
+    ).rejects.toThrow()
+    await expect(
+      database.asUser(alice, (db) =>
+        db.query('update statement_packages set superseded_by = null where id = $1', [original]),
+      ),
+    ).rejects.toThrow()
+    await expect(
+      database.asUser(alice, (db) =>
+        db.query(
+          `insert into statement_packages (building_id, dispatch_date, superseded_by)
+           values ($1, '2026-10-02', $2)`,
+          [building, correction],
+        ),
+      ),
+    ).rejects.toThrow()
   })
 })

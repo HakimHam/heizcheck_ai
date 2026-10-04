@@ -3,13 +3,15 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AutoRefresh } from '@/components/auto-refresh'
 import { CheckReportView } from '@/components/check-report-view'
+import { HistoryLink } from '@/components/history-link'
 import { ConfirmForm } from '@/components/confirm-form'
 import { PackageProgress } from '@/components/package-progress'
 import { formatAddress, unknownFacts } from '@/lib/building-profile'
 import { getBuilding } from '@/lib/buildings'
 import { formatBillingPeriod, formatDate } from '@/lib/dates'
+import { currentOf } from '@/lib/package-history'
 import { isExtractionStuck, PACKAGE_STATUS_LABELS } from '@/lib/package-status'
-import { getCheckReport, getPackage, getPdfLinks } from '@/lib/statement-packages'
+import { getCheckReport, getPackage, getPdfLinks, listPackages } from '@/lib/statement-packages'
 import { confirmStatementPackage, extractStatementPackage } from '../actions'
 
 export const metadata: Metadata = { title: 'Abrechnungspaket – HeizCheck' }
@@ -20,12 +22,16 @@ export default async function PackagePage({ params }: Props) {
   // RLS hides other Organisations' packages, so they are simply not found.
   const pkg = await getPackage((await params).id)
   if (!pkg) notFound()
-  const [building, report, pdfs] = await Promise.all([
+  const [building, report, pdfs, packages] = await Promise.all([
     getBuilding(pkg.buildingId),
     pkg.status === 'checked' ? getCheckReport(pkg.id) : null,
     pkg.status === 'awaiting_confirmation' ? getPdfLinks(pkg.id) : [],
+    // Only a checked package can be superseded or have a history.
+    pkg.status === 'checked' ? listPackages(pkg.buildingId) : [],
   ])
   if (!building) notFound()
+  const summary = packages.find((p) => p.id === pkg.id)
+  const current = summary && currentOf(packages, summary)
 
   const billingPeriod = (pkg.confirmedFigures ?? pkg.extracted?.figures)?.building.billingPeriod ?? null
   const missing = unknownFacts(building.profile)
@@ -37,10 +43,27 @@ export default async function PackagePage({ params }: Props) {
       <p><Link href={`/gebaeude/${building.id}`}>← {building.address.street}</Link></p>
       <h1>Abrechnungspaket {billingPeriod && formatBillingPeriod(billingPeriod)}</h1>
       <p className="muted">
-        {formatAddress(building.address)} · Versanddatum{' '}
+        {/* A Check Report keeps the address it was checked under. */}
+        {formatAddress(report?.address ?? building.address)} · Versanddatum{' '}
         {formatDate(pkg.dispatchDate)} · {pkg.files.length}{' '}
         {pkg.files.length === 1 ? 'PDF-Datei' : 'PDF-Dateien'} · {PACKAGE_STATUS_LABELS[pkg.status]}
       </p>
+
+      {current && current.id !== pkg.id ? (
+        <div className="banner" role="note">
+          <p>
+            <strong>Ersetzt:</strong> Für diesen Abrechnungszeitraum wurde ein korrigiertes
+            Abrechnungspaket bestätigt. Dieses Paket und sein Prüfbericht bleiben zur Nachverfolgung
+            erhalten.
+          </p>
+          <p>
+            <Link href={`/pakete/${current.id}`}>Aktuelles Paket ansehen</Link> ·{' '}
+            <Link href={`/pakete/${pkg.id}/verlauf`}>Verlauf</Link>
+          </p>
+        </div>
+      ) : (
+        summary && <HistoryLink packages={packages} pkg={summary} />
+      )}
 
       <PackageProgress status={pkg.status} />
 

@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { Document, Font, Page, renderToBuffer, StyleSheet, Text, View } from '@react-pdf/renderer'
-import { type Address, formatAddress } from './building-profile'
+import { formatAddress } from './building-profile'
 import type { Finding } from './check-engine'
 import {
   affectedUnitsLabel,
@@ -85,9 +85,9 @@ function FindingBlock({ finding }: { finding: Finding }) {
   )
 }
 
-function CheckReportDocument({ report, address }: { report: CheckReport; address: Address }) {
+function CheckReportDocument({ report }: { report: CheckReport }) {
   const { errors, warnings, notAssessable } = summarise(report.results)
-  const addressLine = formatAddress(address)
+  const addressLine = formatAddress(report.address)
   return (
     <Document title={`Prüfbericht – ${addressLine}`} author="HeizCheck" language="de-DE">
       <Page size="A4" style={styles.page}>
@@ -139,9 +139,6 @@ function CheckReportDocument({ report, address }: { report: CheckReport; address
 }
 
 /** The stored Check Report as a German PDF. */
-export async function renderCheckReportPdf(
-  report: CheckReport,
-  address: Address,
-): Promise<Uint8Array<ArrayBuffer>> {
-  return new Uint8Array(await renderToBuffer(<CheckReportDocument report={report} address={address} />))
+export async function renderCheckReportPdf(report: CheckReport): Promise<Uint8Array<ArrayBuffer>> {
+  return new Uint8Array(await renderToBuffer(<CheckReportDocument report={report} />))
 }

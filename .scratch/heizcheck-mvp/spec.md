@@ -247,6 +247,10 @@ Every Finding cites its paragraph in `legalReference`.
 
 Uploading a package for a building and Billing Period that already has one marks the older package `superseded_by` the new one. Nothing is deleted. Views default to the current package and link to its history.
 
+- The Billing Period is a Confirmed Figure, so it isn't known at upload. Supersession therefore happens when the new package is confirmed, in the same transaction as its Check Report: of all confirmed packages for the building and Billing Period, the newest upload is current, and each other current one is marked `superseded_by` it. Until then the older package stays current. An unknown Billing Period supersedes nothing. A package stays superseded; only `confirm_statement_package` sets the link (decided 2026-10-04, ticket 14).
+- A package's history is every package linked to the same current package through `superseded_by`, oldest first.
+- Each Check Report snapshots the building's address when it is created, as it does the Building Profile. The report view and PDF export use that snapshot.
+
 ## Testing Decisions
 
 - **What makes a good test:** it exercises behaviour only through the seams below and asserts on observable output (Check Results, Findings, Extracted Figures). It never reaches into rule internals, prompt text or database layout. Tests are written test-first (red-green-refactor).

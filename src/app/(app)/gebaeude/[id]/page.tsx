@@ -7,8 +7,10 @@ import { buildingFormValues } from '@/lib/building-form'
 import { unknownFacts } from '@/lib/building-profile'
 import { getBuilding } from '@/lib/buildings'
 import { formatBillingPeriod, formatDate } from '@/lib/dates'
+import { currentPackages } from '@/lib/package-history'
 import { PACKAGE_STATUS_LABELS } from '@/lib/package-status'
 import { CheckReportSummary } from '@/components/check-report-summary'
+import { HistoryLink } from '@/components/history-link'
 import { listPackages } from '@/lib/statement-packages'
 import { saveBuilding } from '../actions'
 
@@ -27,6 +29,8 @@ export default async function BuildingPage({ params }: Props) {
 
   const missing = unknownFacts(building.profile)
   const packages = await listPackages(building.id)
+  // Superseded Packages are reached through the history of the current one.
+  const current = currentPackages(packages)
 
   return (
     <>
@@ -54,7 +58,7 @@ export default async function BuildingPage({ params }: Props) {
             </Link>
           )}
         </div>
-        {packages.length === 0 ? (
+        {current.length === 0 ? (
           <div className="empty">
             <p>Für dieses Gebäude wurden noch keine Abrechnungspakete hochgeladen.</p>
           </div>
@@ -69,10 +73,11 @@ export default async function BuildingPage({ params }: Props) {
               </tr>
             </thead>
             <tbody>
-              {packages.map((pkg) => (
+              {current.map((pkg) => (
                 <tr key={pkg.id}>
                   <td>
                     <Link href={`/pakete/${pkg.id}`}>{formatBillingPeriod(pkg.billingPeriod)}</Link>
+                    <HistoryLink packages={packages} pkg={pkg} />
                   </td>
                   <td>{formatDate(pkg.dispatchDate)}</td>
                   <td>{PACKAGE_STATUS_LABELS[pkg.status]}</td>
