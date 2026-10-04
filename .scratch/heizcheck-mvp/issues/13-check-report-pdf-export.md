@@ -32,5 +32,5 @@
 
 - The order is kept as is: grouped by rule, with Errors first within each rule. The spec's Rule semantics now say so.
 - The spec's Testing Decisions now list the PDF export as seam 3. Only the visual layout is left to the manual run.
-- The `server-only` guard is moved to #14.
-- The address snapshot is a to-do at the top of #16.
+- The `server-only` guard is skipped: it adds little and would break the PDF test under vitest.
+- The address snapshot moved to #14.
