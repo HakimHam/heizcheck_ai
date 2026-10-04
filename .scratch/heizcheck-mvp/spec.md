@@ -241,7 +241,7 @@ Every Finding cites its paragraph in `legalReference`.
   - **Deadline:** Billing Period end + 12 **calendar months**, per §188 para 2 BGB, never 365 days. If the target month is shorter, the deadline is its last day (§188 para 3); a period ending 28 Feb 2025, for example, has a deadline of 28 Feb 2026.
   - **Error:** if the Dispatch Date is after the deadline.
   - **Warning:** if the Dispatch Date falls within 4 weeks (28 days, §188 para 2 BGB) before the deadline.
-- Findings are ordered with Errors before Warnings, then in catalogue order.
+- The Check Report lists Check Results grouped by rule: rules with an Error first, then rules with only Warnings, then Not assessable, then Passed, each group in catalogue order. Within a rule, Errors come before Warnings. A rule's Warning can therefore appear before another rule's Error; keeping each rule's Findings together was chosen over a flat list (decided 2026-10-04, ticket 13).
 
 ### Supersession
 
@@ -249,7 +249,7 @@ Uploading a package for a building and Billing Period that already has one marks
 
 ## Testing Decisions
 
-- **What makes a good test:** it exercises behaviour only through the two seams and asserts on observable output (Check Results, Findings, Extracted Figures). It never reaches into rule internals, prompt text or database layout. Tests are written test-first (red-green-refactor).
+- **What makes a good test:** it exercises behaviour only through the seams below and asserts on observable output (Check Results, Findings, Extracted Figures). It never reaches into rule internals, prompt text or database layout. Tests are written test-first (red-green-refactor).
 - **Seam 1: check engine (`checkPackage`).** This is the main test surface.
   - Per rule: Passed, Finding raised and Not assessable cases, including boundaries:
     - C1 at exactly ±€0.05 × n.
@@ -276,7 +276,8 @@ Uploading a package for a building and Billing Period that already has one marks
   - An eval suite runs the Bedrock adapter against 5–10 real, anonymised Minol Statement Packages, with hand-labelled expected figures, including the CO₂ fields and the printed area precision. It reports the share of correct figures, with a target of ≥ 95%. It runs on demand, not in CI, because it needs real PDFs and AWS credentials.
   - A Zod contract test checks that malformed model output is rejected as a failed extraction.
   - All flow and UI work downstream uses the fake Extractor.
-- **Not tested at a seam:** the Confirm UI, PDF rendering and persistence are covered by a manual end-to-end run on one real package (target: under 10 minutes for a Property Manager).
+- **Seam 3: Check Report PDF export (`renderCheckReportPdf`).** Renders a stored Check Report and reads the text back with pdf.js, asserting what the PDF shows (header facts, every Check Result, Finding details, order, disclaimer). It never asserts on layout.
+- **Not tested at a seam:** the Confirm UI, the PDF's visual layout and persistence are covered by a manual end-to-end run on one real package (target: under 10 minutes for a Property Manager).
 - **Prior art:** none yet. The repo has no code, so these tests set the pattern.
 
 ## Out of Scope

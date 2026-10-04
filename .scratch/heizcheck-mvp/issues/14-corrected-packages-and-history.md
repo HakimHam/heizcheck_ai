@@ -11,3 +11,4 @@
 - [ ] Views show the current package by default and link to its history.
 - [ ] The history lists all packages and Check Reports for the building and Billing Period in order.
 - [ ] The status in the buildings list reflects the current package only.
+- [ ] `src/lib/check-report-pdf.tsx` starts with `import 'server-only'`, like the other modules that read from the server (it reads the fonts from disk). Make vitest accept the guard (e.g. alias `server-only` to an empty module in `vitest.config.ts`) so `check-report-pdf.test.ts` still runs. Carried over from the #13 review.

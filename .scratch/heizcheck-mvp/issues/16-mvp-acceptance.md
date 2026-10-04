@@ -12,6 +12,10 @@ See `docs/mvp-scope.md`: Success criteria.
 
 **Status:** ready-for-human
 
+**To do before this ticket (from the #13 review)**
+
+- [ ] Snapshot the building's address in each Check Report when it is created, as the Building Profile already is, and use it in the PDF export and the report view. Today the export prints the building's current address, so editing the address changes how old Check Reports read. Needs a migration (`check_reports` column + `confirm_statement_package`) and a backfill of existing reports from their building.
+
 **Automated checks**
 
 - [ ] A "clean package" fixture in which every rule returns Passed.

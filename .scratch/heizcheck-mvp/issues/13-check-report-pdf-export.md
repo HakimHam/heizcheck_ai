@@ -27,3 +27,10 @@
 - **Open points for review:**
   - The address comes from the building's current row, because Check Reports don't snapshot it. If the address is edited later, old exports show the new one.
   - "Errors before Warnings" follows `orderForReport` from #03. Rules with an Error come first, and Errors come before Warnings within a rule. A rule's Warning can still come before another rule's Error.
+
+**2026-10-04 (review follow-up):**
+
+- The order is kept as is: grouped by rule, with Errors first within each rule. The spec's Rule semantics now say so.
+- The spec's Testing Decisions now list the PDF export as seam 3. Only the visual layout is left to the manual run.
+- The `server-only` guard is moved to #14.
+- The address snapshot is a to-do at the top of #16.
