@@ -8,3 +8,6 @@ skills-lock.json
 .env*.local
 .vercel/
 coverage/
+# Eval packages and results: PDFs (possibly real, redacted ones) stay local.
+eval/fixtures/
+eval/results/

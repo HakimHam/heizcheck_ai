@@ -115,7 +115,7 @@ export async function registerPackage(
  * submit doesn't extract twice. Any failure, including a PDF that never
  * finished uploading or isn't really a PDF, leaves it `extraction_failed`.
  */
-export async function extractPackage(packageId: string, extractor: Extractor = appExtractor()) {
+export async function extractPackage(packageId: string, extractor?: Extractor) {
   if (!isUuid(packageId)) return
   const supabase = await createClient()
   const { data: started, error } = await supabase
@@ -153,7 +153,8 @@ export async function extractPackage(packageId: string, extractor: Extractor = a
         return { fileName: file.file_name, bytes }
       }),
     )
-    extracted = await extractor.extract(pdfs)
+    // Chosen here, so a misconfigured Extractor fails the extraction instead of leaving it stuck.
+    extracted = await (extractor ?? appExtractor()).extract(pdfs)
   } catch (cause) {
     console.error(`Extraction of Statement Package ${packageId} failed`, cause)
     await markExtractionFailed(packageId)

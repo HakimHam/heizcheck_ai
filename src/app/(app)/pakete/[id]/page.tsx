@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AutoRefresh } from '@/components/auto-refresh'
 import { CheckReportView } from '@/components/check-report-view'
+import { DevExtractorBanner } from '@/components/dev-extractor-banner'
 import { HistoryLink } from '@/components/history-link'
 import { ConfirmForm } from '@/components/confirm-form'
 import { PackageProgress } from '@/components/package-progress'
@@ -15,6 +16,8 @@ import { getCheckReport, getPackage, getPdfLinks, listPackages } from '@/lib/sta
 import { confirmStatementPackage, extractStatementPackage } from '../actions'
 
 export const metadata: Metadata = { title: 'Abrechnungspaket – HeizCheck' }
+// The extraction Server Action (upload, retry) waits for Claude to read the PDFs.
+export const maxDuration = 300
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -66,6 +69,9 @@ export default async function PackagePage({ params }: Props) {
       )}
 
       <PackageProgress status={pkg.status} />
+
+      {/* Until confirmed, the package's PDFs may still be sent for extraction. */}
+      {pkg.status !== 'confirmed' && pkg.status !== 'checked' && <DevExtractorBanner />}
 
       {pkg.status === 'uploaded' && (
         <div className="banner" role="status">

@@ -27,7 +27,7 @@ function loadPdfjs() {
   return pdfjs
 }
 
-/** The package's PDFs, one page at a time, with the selected figure's region highlighted. */
+/** The package's PDFs, one page at a time, with the selected figure's region highlighted if known. */
 export function PdfSourceViewer({ files, selection }: Props) {
   const [view, setView] = useState<View>({ file: 0, page: 1 })
   const [pageCount, setPageCount] = useState<number | null>(null)
@@ -52,8 +52,9 @@ export function PdfSourceViewer({ files, selection }: Props) {
   }
 
   const file = files[view.file]
-  const highlighted =
-    source && sourceFile === view.file && source.page === view.page && !loadError ? source : null
+  const onSourcePage = source && sourceFile === view.file && source.page === view.page && !loadError
+  // A source without a region (its text wasn't found on the page) opens the page unmarked.
+  const highlighted = onSourcePage ? (source.bbox ?? null) : null
 
   useEffect(() => {
     const open = documents.current
@@ -161,10 +162,10 @@ export function PdfSourceViewer({ files, selection }: Props) {
               ref={highlight}
               className="pdf-highlight"
               style={{
-                left: `${highlighted.bbox[0] * 100}%`,
-                top: `${highlighted.bbox[1] * 100}%`,
-                width: `${highlighted.bbox[2] * 100}%`,
-                height: `${highlighted.bbox[3] * 100}%`,
+                left: `${highlighted[0] * 100}%`,
+                top: `${highlighted[1] * 100}%`,
+                width: `${highlighted[2] * 100}%`,
+                height: `${highlighted[3] * 100}%`,
               }}
             />
           )}
@@ -180,5 +181,6 @@ function sourceStatus(selection: Selection | undefined, inPackage: boolean, high
   if (!source) return 'Für diesen Wert gibt es keine Fundstelle in den PDF-Dateien.'
   if (!inPackage) return `Die Fundstelle liegt in „${source.file}“, die nicht zum Paket gehört.`
   if (highlighted) return 'Die Fundstelle ist markiert.'
+  if (!source.bbox) return `Fundstelle: ${source.file}, Seite ${source.page} (ohne Markierung).`
   return `Fundstelle: ${source.file}, Seite ${source.page}.`
 }

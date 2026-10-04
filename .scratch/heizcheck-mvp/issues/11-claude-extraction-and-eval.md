@@ -18,39 +18,39 @@ The AI never judges the figures (ADR 0001). An eval measures extraction accuracy
 
 **Adapter**
 
-- [ ] `ClaudeExtractor` implements the Extractor interface and takes a transport (client + model ID). The Anthropic transport uses `claude-sonnet-5`. Neither Sonnet 5.5 nor any non-EU route is used for production.
-- [ ] The fixed schema comes back through one tool with `strict: true` and `tool_choice: auto`, on both transports. No structured outputs (`output_config.format`), because Bedrock doesn't support them for Sonnet 5. The request uses nothing the Bedrock `bedrock-mantle` endpoint lacks (no Files API, no server-side fallbacks).
-- [ ] All of a package's PDFs go in one request as base64 `document` blocks, each preceded by a text label with its exact uploaded file name. A package over the API limits (32 MB, 600 pages) is a failed extraction.
-- [ ] The tool input is validated with Zod. Output that fails validation is a failed extraction, never a partial one.
+- [x] `ClaudeExtractor` implements the Extractor interface and takes a transport (client + model ID). The Anthropic transport uses `claude-sonnet-5`. Neither Sonnet 5.5 nor any non-EU route is used for production.
+- [x] The fixed schema comes back through one tool with `strict: true` and `tool_choice: auto`, on both transports. No structured outputs (`output_config.format`), because Bedrock doesn't support them for Sonnet 5. The request uses nothing the Bedrock `bedrock-mantle` endpoint lacks (no Files API, no server-side fallbacks).
+- [x] All of a package's PDFs go in one request as base64 `document` blocks, each preceded by a text label with its exact uploaded file name. A package over the API limits (32 MB, 600 pages) is a failed extraction.
+- [x] The tool input is validated with Zod. Output that fails validation is a failed extraction, never a partial one.
 
 **Output**
 
-- [ ] Figures the model can't find are null, not guessed.
-- [ ] Every figure carries a source reference: `file`, `page` and `quote` (the text exactly as printed). Zod rejects a `file` that isn't one of the uploaded file names (ticket 12's contract).
-- [ ] A bbox locator, behind its own interface so OCR (ticket 18) can be added later, works out `bbox` by finding `quote` in the page's pdf.js text layer. If the text layer is scrambled or the quote isn't found, the reference keeps its page and has no `bbox`, and the Confirm screen shows the page without a highlight. Claude itself still reads the page image, so extraction doesn't depend on the text layer.
-- [ ] Cost Item names are extracted exactly as written.
-- [ ] The output schema has no verdict, severity or judgement fields.
+- [x] Figures the model can't find are null, not guessed.
+- [x] Every figure carries a source reference: `file`, `page` and `quote` (the text exactly as printed). Zod rejects a `file` that isn't one of the uploaded file names (ticket 12's contract).
+- [x] A bbox locator, behind its own interface so OCR (ticket 18) can be added later, works out `bbox` by finding `quote` in the page's pdf.js text layer. If the text layer is scrambled or the quote isn't found, the reference keeps its page and has no `bbox`, and the Confirm screen shows the page without a highlight. Claude itself still reads the page image, so extraction doesn't depend on the text layer.
+- [x] Cost Item names are extracted exactly as written.
+- [x] The output schema has no verdict, severity or judgement fields.
 
 **Choosing the extractor**
 
-- [ ] `appExtractor()` reads `EXTRACTOR=fake|anthropic|bedrock`, defaulting to `fake`. `bedrock` throws "not implemented" until ticket 17.
-- [ ] Extraction throws when `EXTRACTOR=anthropic` and `VERCEL_ENV=production`. A test proves it.
-- [ ] While `EXTRACTOR=anthropic`, the upload and Confirm screens show a German banner, e.g. "Entwicklungsmodus: Extraktion über Anthropic-API (USA) – keine echten Mieterdaten hochladen".
-- [ ] The README explains `ANTHROPIC_API_KEY` and `EXTRACTOR` in `.env.local`, and that the key must never be set in Vercel production.
+- [x] `appExtractor()` reads `EXTRACTOR=fake|anthropic|bedrock`, defaulting to `fake`. `bedrock` throws "not implemented" until ticket 17.
+- [x] Extraction throws when `EXTRACTOR=anthropic` and `VERCEL_ENV=production`. A test proves it.
+- [x] While `EXTRACTOR=anthropic`, the upload and Confirm screens show a German banner, e.g. "Entwicklungsmodus: Extraktion über Anthropic-API (USA) – keine echten Mieterdaten hochladen".
+- [x] The README explains `ANTHROPIC_API_KEY` and `EXTRACTOR` in `.env.local`, and that the key must never be set in Vercel production.
 
 **Failure and testing**
 
-- [ ] A failed extraction sets the package to `extraction_failed`, shows an error in German and offers a retry.
-- [ ] A contract test proves that malformed model output is rejected.
-- [ ] The fake Extractor stays available for tests and local development.
+- [x] A failed extraction sets the package to `extraction_failed`, shows an error in German and offers a retry.
+- [x] A contract test proves that malformed model output is rejected.
+- [x] The fake Extractor stays available for tests and local development.
 
 **Eval**
 
-- [ ] `npm run eval` runs on demand, not in CI. It reads gitignored fixtures from `eval/fixtures/<package>/` (the PDFs plus `expected.json`).
-- [ ] A figure counts as correct only on an exact match after normalising: amounts in cents, area at the printed precision, Cost Item names exactly, and an expected `null` met with `null`.
-- [ ] It reports the overall share of correct figures (target ≥ 95%) and a breakdown per field, so the CO₂ fields show separately.
-- [ ] A generator (`npm run make-fixture`) renders synthetic packages from a JSON of made-up figures through an HTML template in the Minol layout and headless Chrome. The same JSON becomes `expected.json`. Synthetic packages vary on purpose: Unit count, estimated readings, CO₂ present, missing or reduced, area precision, Cost Item wording, missing figures and planted mistakes. Some packages are image-only (pages rendered as pictures, no usable text), because the Minol Muster's text layer is scrambled and the eval must cover that case.
-- [ ] Synthetic results are reported as synthetic. The ≥ 95% target for MVP acceptance (ticket 16) needs real, properly redacted packages, run through ticket 17's Bedrock route.
+- [x] `npm run eval` runs on demand, not in CI. It reads gitignored fixtures from `eval/fixtures/<package>/` (the PDFs plus `expected.json`).
+- [x] A figure counts as correct only on an exact match after normalising: amounts in cents, area at the printed precision, Cost Item names exactly, and an expected `null` met with `null`.
+- [x] It reports the overall share of correct figures (target ≥ 95%) and a breakdown per field, so the CO₂ fields show separately.
+- [x] A generator (`npm run make-fixture`) renders synthetic packages from a JSON of made-up figures through an HTML template in the Minol layout and headless Chrome. The same JSON becomes `expected.json`. Synthetic packages vary on purpose: Unit count, estimated readings, CO₂ present, missing or reduced, area precision, Cost Item wording, missing figures and planted mistakes. Some packages are image-only (pages rendered as pictures, no usable text), because the Minol Muster's text layer is scrambled and the eval must cover that case.
+- [x] Synthetic results are reported as synthetic. The ≥ 95% target for MVP acceptance (ticket 16) needs real, properly redacted packages, run through ticket 17's Bedrock route.
 
 ## Comments
 
@@ -68,3 +68,10 @@ The AI never judges the figures (ADR 0001). An eval measures extraction accuracy
 - Some synthetic eval packages are image-only, so the eval doesn't overstate accuracy.
 
 Redaction warning for fixtures: black boxes drawn in a PDF editor leave the text layer intact, and the text layer is what gets sent. Use real redaction and check the result with the text-layer script.
+
+**2026-10-04 (implemented):** Everything except the real-statement text-layer check is built. That check is a manual step and stays open. A smoke eval on two synthetic packages (one text, one image-only) read 118/118 figures correctly. Follow-ups from code review, not done here:
+
+- A quote printed more than once on its page now gets no box, so it can't highlight the wrong place. Short quotes ("70 %") will often have no box.
+- If the fuel type is missing, a stated fuel quantity and unit are dropped. A lone CO₂ share is dropped the same way. A missing fuel unit becomes `''`, because the `Figures` type needs a string. Fixing this means changing `figures.ts`.
+- Each PDF is parsed twice by pdf.js, once for the page count and once for the bbox. One shared opener would avoid that.
+- `units.unitId` counts as a scored figure, but it is correct whenever a Unit is matched. This raises the eval share slightly.

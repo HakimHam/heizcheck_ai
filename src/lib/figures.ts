@@ -59,13 +59,21 @@ export type UnitFigures = {
 
 export type Figures = { building: BuildingFigures; units: UnitFigures[] }
 
-/** Where a figure appears: a PDF of the package, a 1-based page and a region on it. */
+/** [x, y, width, height] as fractions of the page, from the top left. */
+export type Bbox = [number, number, number, number]
+
+/** Where a figure appears: a PDF of the package, a 1-based page and maybe a region on it. */
 export type SourceReference = {
   /** The PDF's file name as uploaded; the Confirm screen finds the PDF by it. */
   file: string
   page: number
-  /** [x, y, width, height] as fractions of the page, from the top left. */
-  bbox: [number, number, number, number]
+  /** The figure's text exactly as printed. */
+  quote?: string
+  /**
+   * Where `quote` is on the page, found by code, never by the AI. Missing when
+   * it can't be found (e.g. a scrambled text layer): the page is still known.
+   */
+  bbox?: Bbox
 }
 
 /**
