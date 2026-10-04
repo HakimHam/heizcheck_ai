@@ -13,7 +13,8 @@ The AI never judges the figures (ADR 0001). An eval measures extraction accuracy
 
 **First: check the text layer**
 
-- [ ] Before building the bbox locator, check that a Minol PDF (the Minol Musterabrechnung is enough) has a real text layer. A script prints what pdf.js reads per page, and amounts such as `1.234,56` must come through cleanly. If the PDF is a scan, stop and revisit how highlight boxes are made.
+- [x] Check the Minol Musterabrechnung with `scripts/check-text-layer.mjs`. Result (2026-10-04): both samples have a text layer, but it is scrambled: the fonts have no character mapping, so amounts read as `WYX e eU`. `pdftotext` gives the same output.
+- [ ] Run the script on one real Minol statement (locally; report only the summary). The result decides whether ticket 18 (OCR) is needed.
 
 **Adapter**
 
@@ -26,7 +27,7 @@ The AI never judges the figures (ADR 0001). An eval measures extraction accuracy
 
 - [ ] Figures the model can't find are null, not guessed.
 - [ ] Every figure carries a source reference: `file`, `page` and `quote` (the text exactly as printed). Zod rejects a `file` that isn't one of the uploaded file names (ticket 12's contract).
-- [ ] Code works out `bbox` by finding `quote` in the page's pdf.js text layer. If the quote isn't found, the reference keeps its page and has no `bbox`.
+- [ ] A bbox locator, behind its own interface so OCR (ticket 18) can be added later, works out `bbox` by finding `quote` in the page's pdf.js text layer. If the text layer is scrambled or the quote isn't found, the reference keeps its page and has no `bbox`, and the Confirm screen shows the page without a highlight. Claude itself still reads the page image, so extraction doesn't depend on the text layer.
 - [ ] Cost Item names are extracted exactly as written.
 - [ ] The output schema has no verdict, severity or judgement fields.
 
@@ -48,7 +49,7 @@ The AI never judges the figures (ADR 0001). An eval measures extraction accuracy
 - [ ] `npm run eval` runs on demand, not in CI. It reads gitignored fixtures from `eval/fixtures/<package>/` (the PDFs plus `expected.json`).
 - [ ] A figure counts as correct only on an exact match after normalising: amounts in cents, area at the printed precision, Cost Item names exactly, and an expected `null` met with `null`.
 - [ ] It reports the overall share of correct figures (target ≥ 95%) and a breakdown per field, so the CO₂ fields show separately.
-- [ ] A generator (`npm run make-fixture`) renders synthetic packages from a JSON of made-up figures through an HTML template in the Minol layout and headless Chrome. The same JSON becomes `expected.json`. Synthetic packages vary on purpose: Unit count, estimated readings, CO₂ present, missing or reduced, area precision, Cost Item wording, missing figures and planted mistakes.
+- [ ] A generator (`npm run make-fixture`) renders synthetic packages from a JSON of made-up figures through an HTML template in the Minol layout and headless Chrome. The same JSON becomes `expected.json`. Synthetic packages vary on purpose: Unit count, estimated readings, CO₂ present, missing or reduced, area precision, Cost Item wording, missing figures and planted mistakes. Some packages are image-only (pages rendered as pictures, no usable text), because the Minol Muster's text layer is scrambled and the eval must cover that case.
 - [ ] Synthetic results are reported as synthetic. The ≥ 95% target for MVP acceptance (ticket 16) needs real, properly redacted packages, run through ticket 17's Bedrock route.
 
 ## Comments
@@ -59,5 +60,11 @@ The AI never judges the figures (ADR 0001). An eval measures extraction accuracy
 - Sonnet 5 on both transports, not 5.5, so eval results carry over.
 - A strict tool on both transports, so they behave the same.
 - Source references use `quote` plus a code-computed `bbox`, because model-estimated coordinates aren't reliable.
+
+**2026-10-04 (text layer):** The Minol Muster's text layer is scrambled, so the quote-matching bbox locator can't find anything on it. Decisions:
+
+- Use the text layer when it reads cleanly. Otherwise give a page-only reference; the Confirm screen already works without a box.
+- OCR is ticket 18, done only if a real Minol statement turns out scrambled too.
+- Some synthetic eval packages are image-only, so the eval doesn't overstate accuracy.
 
 Redaction warning for fixtures: black boxes drawn in a PDF editor leave the text layer intact, and the text layer is what gets sent. Use real redaction and check the result with the text-layer script.

@@ -18,11 +18,16 @@ const showItems = flags.includes('--items')
 
 // German amounts: 1.234,56 or 12,50 or 0,8
 const AMOUNT = /\d{1,3}(?:\.\d{3})*,\d{1,3}/g
+// Words any heating cost statement contains. A text layer whose fonts lack a
+// character mapping (like the Minol Muster's) reads as gibberish without them.
+const COMMON_WORDS =
+  /(?<![\p{L}])(?:und|der|die|für|kosten|heizkosten|abrechnung|verbrauch|gesamt|summe|betrag|zeitraum|wohnung|nutzer|einheiten|warmwasser|heizung|euro)(?![\p{L}])/giu
 
 const pdf = await getDocument({ data: new Uint8Array(await readFile(file)), verbosity: 0 }).promise
 let totalChars = 0
 let totalAmounts = 0
 let splitAmounts = 0
+let commonWords = 0
 
 for (let n = 1; n <= pdf.numPages; n++) {
   const page = await pdf.getPage(n)
@@ -46,6 +51,7 @@ for (let n = 1; n <= pdf.numPages; n++) {
     console.log(text)
 
     totalChars += text.length
+    commonWords += text.match(COMMON_WORDS)?.length ?? 0
     const inLine = text.match(AMOUNT)?.length ?? 0
     const inItems = line.items.reduce((sum, i) => sum + (i.str.match(AMOUNT)?.length ?? 0), 0)
     totalAmounts += inLine
@@ -68,10 +74,14 @@ console.log(`Pages: ${pdf.numPages}`)
 console.log(`Characters read: ${totalChars}`)
 console.log(`Amounts found (like 1.234,56): ${totalAmounts}`)
 console.log(`Amounts split across several text items: ${splitAmounts}`)
+console.log(`Common German words found (und, Kosten, Verbrauch, ...): ${commonWords}`)
 if (totalChars === 0) {
-  console.log('No text layer: this PDF is probably a scan. Highlight boxes need another approach (ticket 11).')
+  console.log('RESULT: no text layer. This PDF is probably a scan; highlights need OCR (ticket 18).')
+} else if (commonWords === 0 && totalAmounts === 0) {
+  console.log('RESULT: scrambled text layer. Characters are there but not readable; highlights need OCR (ticket 18).')
 } else if (totalAmounts === 0) {
-  console.log('Text found, but no amounts. Check the output above: the numbers may be images or oddly encoded.')
+  console.log('RESULT: readable words but no amounts. Check the output above: the numbers may be images or oddly encoded.')
 } else {
-  console.log('Text layer present. Check above that the amounts read exactly as printed in the PDF.')
+  console.log('RESULT: readable text layer.')
+  console.log('Check above that the amounts read exactly as printed in the PDF.')
 }
