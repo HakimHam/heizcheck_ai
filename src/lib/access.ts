@@ -1,5 +1,6 @@
 const AUTH_PAGES = ['/anmelden', '/registrieren']
-const PUBLIC_PREFIXES = [...AUTH_PAGES, '/auth']
+// /api/health is for monitoring, which has no session.
+const PUBLIC_PREFIXES = [...AUTH_PAGES, '/auth', '/api/health']
 
 const matches = (pathname: string, prefix: string) =>
   pathname === prefix || pathname.startsWith(`${prefix}/`)

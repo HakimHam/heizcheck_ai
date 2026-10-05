@@ -1,24 +1,12 @@
 import { anthropicTransport } from './anthropic-transport'
 import { createClaudeExtractor } from './claude'
 import { createFakeExtractor } from './fake'
+import { type Env, extractorMode } from './mode'
 import type { Extractor } from './types'
 
 export * from './types'
-export { createClaudeExtractor, createFakeExtractor }
-
-const MODES = ['fake', 'anthropic', 'bedrock'] as const
-export type ExtractorMode = (typeof MODES)[number]
-
-type Env = Record<string, string | undefined>
-
-/** Which Extractor `EXTRACTOR` selects; the fake if it's unset. */
-export function extractorMode(env: Env = process.env): ExtractorMode {
-  const mode = env.EXTRACTOR || 'fake'
-  if (!MODES.includes(mode as ExtractorMode)) {
-    throw new Error(`EXTRACTOR must be one of ${MODES.join(', ')}, not "${mode}".`)
-  }
-  return mode as ExtractorMode
-}
+export { createClaudeExtractor, createFakeExtractor, extractorMode }
+export type { ExtractorMode } from './mode'
 
 /** The Extractor the app uses, as `EXTRACTOR` selects it. */
 export function appExtractor(env: Env = process.env): Extractor {

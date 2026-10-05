@@ -46,4 +46,4 @@ Each package is `eval/fixtures/<name>/` with its PDFs and `expected.json`. Fixtu
 
 ## Deployment
 
-Vercel deploys from Git; `vercel.json` pins functions to `fra1` (Frankfurt). Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in the Vercel project.
+Vercel deploys from Git: `main` to production, every other branch and pull request to a preview. `vercel.json` pins functions to `fra1` (Frankfurt). The pipeline, the URLs, the health check and the release steps are in `docs/deployment.md`.

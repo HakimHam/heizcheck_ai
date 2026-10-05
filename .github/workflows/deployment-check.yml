@@ -1,0 +1,31 @@
+# Smoke test after every Vercel deployment (preview and production): calls
+# /api/health on the deployed URL and checks it is healthy and runs the
+# commit that was deployed. A failure marks the commit red on GitHub.
+name: Deployment check
+
+on: deployment_status
+
+jobs:
+  health:
+    # Only finished deployments of the "heizcheck" Vercel project.
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      endsWith(github.event.deployment.environment, ' heizcheck')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: GET /api/health
+        env:
+          URL: ${{ github.event.deployment_status.environment_url }}
+          SHA: ${{ github.event.deployment.sha }}
+          # Previews sit behind Vercel's login; this secret lets the check through.
+          BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          for attempt in 1 2 3 4 5; do
+            code=$(curl -s -o health.json -w '%{http_code}' \
+              -H "x-vercel-protection-bypass: $BYPASS" "$URL/api/health" || true)
+            [ "$code" = 200 ] && break
+            echo "Attempt $attempt: HTTP $code"; sleep 10
+          done
+          echo "$URL/api/health → HTTP $code"; cat health.json; echo
+          jq -e --arg commit "${SHA:0:7}" '.ok == true and .commit == $commit' health.json

@@ -23,7 +23,14 @@ describe('redirectFor', () => {
     expect(redirectFor('/auth/callback', true)).toBeNull()
   })
 
+  it('lets monitoring reach the health check without a session, but no other API route', () => {
+    expect(redirectFor('/api/health', false)).toBeNull()
+    expect(redirectFor('/api/health', true)).toBeNull()
+    expect(redirectFor('/api/other', false)).toBe('/anmelden')
+  })
+
   it('does not treat look-alike paths as public', () => {
     expect(redirectFor('/anmelden-falsch', false)).toBe('/anmelden')
+    expect(redirectFor('/api/healthy', false)).toBe('/anmelden')
   })
 })
