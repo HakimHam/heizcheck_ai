@@ -29,6 +29,11 @@ describe('redirectFor', () => {
     expect(redirectFor('/api/other', false)).toBe('/anmelden')
   })
 
+  it('lets Vercel Cron reach the retention job without a session; the route checks the cron secret', () => {
+    expect(redirectFor('/api/retention', false)).toBeNull()
+    expect(redirectFor('/api/retentions', false)).toBe('/anmelden')
+  })
+
   it('does not treat look-alike paths as public', () => {
     expect(redirectFor('/anmelden-falsch', false)).toBe('/anmelden')
     expect(redirectFor('/api/healthy', false)).toBe('/anmelden')

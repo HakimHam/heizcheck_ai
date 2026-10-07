@@ -1,6 +1,7 @@
 const AUTH_PAGES = ['/anmelden', '/registrieren']
-// /api/health is for monitoring, which has no session.
-const PUBLIC_PREFIXES = [...AUTH_PAGES, '/auth', '/api/health']
+// /api/health is for monitoring, which has no session. /api/retention is for
+// Vercel Cron, which has none either; the route itself checks the cron secret.
+const PUBLIC_PREFIXES = [...AUTH_PAGES, '/auth', '/api/health', '/api/retention']
 
 const matches = (pathname: string, prefix: string) =>
   pathname === prefix || pathname.startsWith(`${prefix}/`)

@@ -5,12 +5,13 @@ import { PGlite } from '@electric-sql/pglite'
 const MIGRATIONS_DIR = join(import.meta.dirname, '..', 'migrations')
 
 // The parts of a Supabase database our migrations rely on: the `auth` schema,
-// `auth.uid()`, the `anon` / `authenticated` roles and storage's buckets and
-// objects. Mirrors Supabase's own definitions closely enough for RLS policies
-// to behave the same way.
+// `auth.uid()`, the `anon` / `authenticated` / `service_role` roles and
+// storage's buckets and objects. Mirrors Supabase's own definitions closely
+// enough for RLS policies to behave the same way.
 const SUPABASE_STUB = `
   create role anon nologin;
   create role authenticated nologin;
+  create role service_role nologin bypassrls;
   create schema auth;
   create table auth.users (
     id uuid primary key,
@@ -42,9 +43,9 @@ const SUPABASE_STUB = `
   $$;
   grant usage on schema storage to anon, authenticated;
   grant select, insert, update, delete on storage.objects to anon, authenticated;
-  grant usage on schema public to anon, authenticated;
+  grant usage on schema public to anon, authenticated, service_role;
   alter default privileges in schema public
-    grant select, insert, update, delete on tables to anon, authenticated;
+    grant select, insert, update, delete on tables to anon, authenticated, service_role;
 `
 
 export type TestDatabase = {
@@ -53,6 +54,8 @@ export type TestDatabase = {
   signUp(email: string, organisationName: string): Promise<string>
   /** Runs `fn` as that signed-in user, with RLS enforced. */
   asUser<T>(userId: string, fn: (db: PGlite) => Promise<T>): Promise<T>
+  /** Runs `fn` as the service role, which bypasses RLS: how the retention job connects. */
+  asServiceRole<T>(fn: (db: PGlite) => Promise<T>): Promise<T>
 }
 
 export async function createTestDatabase(): Promise<TestDatabase> {
@@ -82,6 +85,14 @@ export async function createTestDatabase(): Promise<TestDatabase> {
       } finally {
         await db.exec('reset role')
         await db.query(`select set_config('request.jwt.claims', '', false)`)
+      }
+    },
+    async asServiceRole(fn) {
+      await db.exec('set role service_role')
+      try {
+        return await fn(db)
+      } finally {
+        await db.exec('reset role')
       }
     },
   }

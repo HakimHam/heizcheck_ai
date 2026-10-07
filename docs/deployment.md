@@ -38,10 +38,13 @@ push branch ──► pull request ──► CI: typecheck, tests, build ──�
 
 **Rolling back:** in Vercel, Deployments → the last good production deployment → Instant Rollback (or `npx vercel rollback`). Then revert the change on `main`.
 
+**Retention job:** Vercel Cron calls `GET /api/retention` daily at 03:00 UTC (`vercel.json`). It removes the PDFs, then deletes the Statement Packages and Check Reports, 4 years after they were created. A failed run returns `500`, shows as a failed cron invocation under the project's Cron Jobs, and is retried by the next day's run. Vercel runs cron jobs on production only.
+
 **Database migrations** aren't applied by the pipeline: apply the new files in `supabase/migrations/` in order before merging code that needs them.
 
 ## One-time setup
 
 - **Vercel environment variables**: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` for Production and Preview. `EXTRACTOR=anthropic` and `ANTHROPIC_API_KEY` for **Preview only**, never Production.
+- **Retention job**: `SUPABASE_SECRET_KEY` (Supabase, Settings → API Keys → secret key) and `CRON_SECRET` (a long random string, e.g. `openssl rand -hex 32`) for **Production only**. Without them the job answers `401` or `500` and deletes nothing.
 - **Preview health checks**: previews are behind Vercel's login. In Vercel, Settings → Deployment Protection → Protection Bypass for Automation, create a secret, then store it in GitHub: `gh secret set VERCEL_AUTOMATION_BYPASS_SECRET`.
 - **Supabase auth**: under Authentication → URL Configuration, set the Site URL to the production URL and allow `https://heizcheck-khaki.vercel.app/auth/callback` and `https://*-hakimhams-projects.vercel.app/auth/callback`.
