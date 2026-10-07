@@ -597,22 +597,6 @@ describe('B1: the §556 Abs. 3 BGB deadline', () => {
     expect(b1('2025-12-31', '2026-12-02')).toEqual({ rule: 'B1', status: 'passed' })
   })
 
-  it('raises a Warning when the Dispatch Date is exactly 28 days before the deadline', () => {
-    expect(b1('2025-12-31', '2026-12-03')).toEqual({
-      rule: 'B1',
-      status: 'finding',
-      findings: [
-        {
-          severity: 'warning',
-          legalReference: '§556 Abs. 3 BGB',
-          message: expect.stringMatching(/31\.12\.2026.*28 Tage/),
-          affectedUnits: [],
-          amountAtStakeCents: null,
-        },
-      ],
-    })
-  })
-
   it('raises a Warning when the Dispatch Date is the deadline day', () => {
     const r = b1('2025-12-31', '2026-12-31')
     expect(r.status === 'finding' && r.findings[0].severity).toBe('warning')

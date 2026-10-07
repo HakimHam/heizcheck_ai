@@ -2,7 +2,7 @@ import { daysBetween, formatDate } from '../../dates'
 import type { IsoDate } from '../../figures'
 import type { Rule } from '../types'
 
-/** Four weeks (§188 Abs. 2 BGB). The Warning starts this many days before the deadline. */
+/** Four weeks (§188 Abs. 2 BGB): how close to the deadline a Dispatch Date gets a Warning. */
 const WARNING_DAYS = 28
 
 const toIsoDate = (utc: number): IsoDate => new Date(utc).toISOString().slice(0, 10)
@@ -29,7 +29,7 @@ export const b1: Rule = ({ confirmedFigures: { building }, dispatchDate }) => {
 
   const due = deadline(period.end)
   const daysLeft = daysBetween(dispatchDate, due)
-  if (daysLeft > WARNING_DAYS) return { status: 'passed' }
+  if (daysLeft >= WARNING_DAYS) return { status: 'passed' }
 
   const late = daysLeft < 0
   const deadlineText =
