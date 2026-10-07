@@ -11,3 +11,7 @@ coverage/
 # Eval packages and results: PDFs (possibly real, redacted ones) stay local.
 eval/fixtures/
 eval/results/
+.claude/settings.local.json
+.claude/worktrees/
+# Agent hook log (scripts/agent-log.mjs): may hold command output with secrets.
+.observability/
