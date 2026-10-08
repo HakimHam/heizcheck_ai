@@ -3,6 +3,7 @@ import { unknownFacts } from '@/lib/building-profile'
 import { listBuildings } from '@/lib/buildings'
 import { OutOfScopeBadge } from '@/components/out-of-scope'
 import { CheckReportSummary } from '@/components/check-report-summary'
+import { TodayDate } from '@/components/today-date'
 import { formatBillingPeriod } from '@/lib/dates'
 import { currentPackages } from '@/lib/package-history'
 import { listPackages, type PackageSummary } from '@/lib/statement-packages'
@@ -20,6 +21,7 @@ export default async function BuildingsPage() {
     <>
       <div className="page-title">
         <h1>Gebäude</h1>
+        <TodayDate />
         <Link href="/gebaeude/neu" className="button">Gebäude anlegen</Link>
       </div>
       {buildings.length === 0 ? (

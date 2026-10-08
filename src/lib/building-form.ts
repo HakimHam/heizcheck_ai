@@ -1,4 +1,5 @@
 import { CO2_REDUCTIONS, type BuildingInput, type Co2Reduction } from './building-profile'
+import { isValidGermanPostalCode } from './postal-code'
 
 export type BuildingField =
   | 'street'
@@ -61,7 +62,7 @@ export function parseBuildingForm(form: FormData): BuildingFormResult {
 
   const errors: BuildingFormErrors = {}
   if (!address.street) errors.street = 'Bitte geben Sie Straße und Hausnummer an.'
-  if (!/^\d{5}$/.test(address.postalCode)) {
+  if (!isValidGermanPostalCode(address.postalCode)) {
     errors.postalCode = 'Bitte geben Sie eine fünfstellige Postleitzahl an.'
   }
   if (!address.city) errors.city = 'Bitte geben Sie den Ort an.'
