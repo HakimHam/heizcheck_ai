@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { HelpChat } from '@/components/help-chat'
+import { helpChatEnabled } from '@/lib/help-chat'
 import { createClient } from '@/lib/supabase/server'
 import { signOut } from '../auth/actions'
 
@@ -28,6 +30,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main>{children}</main>
+      {helpChatEnabled() && <HelpChat />}
     </>
   )
 }
