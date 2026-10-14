@@ -12,7 +12,10 @@ export const TOP_K = 3
 
 /**
  * Below this cosine score for the best match, the chain refuses without
- * calling the model. A starting value, tuned against the golden set.
+ * calling the model. It only catches off-topic questions: measured on
+ * 2026-10-14, "Wetter in Berlin" scored 0.276, the English golden question
+ * 0.444, but the unanswerable on-topic ones (CEO, price) 0.62–0.68, as high
+ * as real questions. Those are refused by the model, not by this threshold.
  */
 export const DEFAULT_THRESHOLD = 0.3
 

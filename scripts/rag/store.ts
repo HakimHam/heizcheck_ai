@@ -17,7 +17,7 @@ const SHARED_NAMESPACE = 'workshop-shared'
 const configSchema = z.object({
   OPENAI_API_KEY: z.string({ error: 'Missing OPENAI_API_KEY — set it in .env.local' }).min(1),
   PINECONE_API_KEY: z.string({ error: 'Missing PINECONE_API_KEY — set it in .env.local' }).min(1),
-  RAG_PINECONE_INDEX: z.string().min(1).default('handbook'),
+  RAG_PINECONE_INDEX: z.string().min(1).default('heizcheck-rag'),
   RAG_PINECONE_NAMESPACE: z
     .string()
     .min(1)
@@ -30,9 +30,9 @@ export type RagConfig = { openaiApiKey: string; pineconeApiKey: string; index: s
 
 /**
  * Reads the RAG's settings from the environment, defaulting to the
- * `heizcheck-own-rag` namespace in the `handbook` index.
+ * `heizcheck-own-rag` namespace in our own `heizcheck-rag` index.
  *
- * `ragConfig(process.env)` → `{index: 'handbook', namespace: 'heizcheck-own-rag', …}`
+ * `ragConfig(process.env)` → `{index: 'heizcheck-rag', namespace: 'heizcheck-own-rag', …}`
  */
 export function ragConfig(env: Record<string, string | undefined>): RagConfig {
   const parsed = configSchema.safeParse(env)
@@ -81,8 +81,19 @@ export function vectorStore(config: RagConfig) {
   }
 
   return {
-    /** Replaces everything in the namespace with `chunks`. */
+    /** Replaces everything in the namespace with `chunks`, creating the index on the first seed. */
     async reseed(chunks: Chunk[]): Promise<void> {
+      const existing = (await pinecone.listIndexes()).indexes ?? []
+      if (!existing.some((i) => i.name === config.index)) {
+        // aws us-east-1 is the region Pinecone's free plan allows.
+        await pinecone.createIndex({
+          name: config.index,
+          dimension: EMBEDDING_DIMENSION,
+          metric: 'cosine',
+          spec: { serverless: { cloud: 'aws', region: 'us-east-1' } },
+          waitUntilReady: true,
+        })
+      }
       const { ns, description } = await namespace()
       if (description.dimension !== EMBEDDING_DIMENSION) {
         throw new Error(

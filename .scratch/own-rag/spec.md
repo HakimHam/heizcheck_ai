@@ -53,7 +53,8 @@ padding it would mean inventing facts. Golden #8 was changed from "…und wer ka
 
 ## 3. Vector store
 
-- Pinecone, existing index `handbook` (1536 dims, cosine — verify before seeding).
+- Pinecone, own serverless index **`heizcheck-rag`** (1536 dims, cosine, aws us-east-1), created by the
+  first seed. Changed 2026-10-14: the Pinecone account had no `handbook` index; the user chose an own index.
 - Own namespace **`heizcheck-own-rag`** (never `workshop-shared`).
 - Full re-seed clears the namespace first.
 - Embeddings: OpenAI `text-embedding-3-small` (Anthropic has no embedding model).
@@ -68,7 +69,7 @@ Forked from `../dl-school-agentic/example/rag/deterministic-chain.ts` into `scri
 4. **Score threshold** *t* (start ≈ 0.30 cosine, tuned on the golden set): top score below *t* →
    refuse without calling the LLM
 5. Assemble prompt with numbered context blocks carrying `chunk_id`, `source_file`, `heading`, `page`
-6. `ChatAnthropic` (`@langchain/anthropic`), model `claude-haiku-5-5`, temperature 0 — the job is
+6. `ChatAnthropic` (`@langchain/anthropic`), model `claude-haiku-5-5`, no temperature (the API rejects it for this model) — the job is
    answering from 3 short retrieved chunks, not reading full statements like the extractor
    (`claude-sonnet-5`), so the smaller, faster, cheaper model is enough. If the golden set shows
    Haiku failing on a question the chunks do answer, switch to Sonnet and re-run.

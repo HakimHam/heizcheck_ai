@@ -25,9 +25,9 @@ describe('parseMatch', () => {
 })
 
 describe('ragConfig', () => {
-  it('uses the own namespace in the handbook index by default', () => {
+  it('uses the own heizcheck-rag index and namespace by default', () => {
     expect(ragConfig({ OPENAI_API_KEY: 'sk', PINECONE_API_KEY: 'pc' })).toMatchObject({
-      index: 'handbook',
+      index: 'heizcheck-rag',
       namespace: 'heizcheck-own-rag',
     })
   })

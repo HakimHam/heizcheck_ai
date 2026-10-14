@@ -17,7 +17,10 @@ export const ANSWER_MODEL = 'claude-haiku-5-5'
 export function liveDeps(env: Record<string, string | undefined>): RagDeps {
   if (!env.ANTHROPIC_API_KEY) throw new Error('Missing ANTHROPIC_API_KEY — set it in .env.local')
   const store = vectorStore(ragConfig(env))
-  const llm = new ChatAnthropic({ model: ANSWER_MODEL, temperature: 0, apiKey: env.ANTHROPIC_API_KEY })
+  // No temperature: the API rejects it for this model ("`temperature` is deprecated").
+  // Answers can therefore vary in wording between runs; the golden set scores
+  // citations and refusals, not wording.
+  const llm = new ChatAnthropic({ model: ANSWER_MODEL, apiKey: env.ANTHROPIC_API_KEY })
 
   return {
     search: (question) => store.search(question, TOP_K),
