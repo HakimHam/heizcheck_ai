@@ -1,0 +1,67 @@
+[
+  {
+    "id": 1,
+    "type": "real",
+    "question": "Wann werden hochgeladene Abrechnungen gelöscht?",
+    "expect": { "sources": [{ "source_file": "heizcheck-faq-richtlinien.pdf", "heading": "HeizCheck FAQ und Richtlinien > Datenspeicherung und Löschfristen" }] }
+  },
+  {
+    "id": 2,
+    "type": "real",
+    "question": "Was prüft die Regel B1?",
+    "expect": { "sources": [{ "source_file": "heizcheck-handbuch.pdf", "heading": "HeizCheck Handbuch > Prüfregel B1: Abrechnungsfrist nach §556 BGB" }] }
+  },
+  {
+    "id": 3,
+    "type": "real",
+    "question": "Welche Dateien gehören in ein Abrechnungspaket?",
+    "expect": { "sources": [{ "source_file": "heizcheck-handbuch.pdf", "heading": "HeizCheck Handbuch > Abrechnungspaket hochladen" }] }
+  },
+  {
+    "id": 4,
+    "type": "real",
+    "question": "Was passiert, wenn ich eine neue Version einer Abrechnung hochlade?",
+    "expect": { "sources": [{ "source_file": "heizcheck-handbuch.pdf", "heading": "HeizCheck Handbuch > Neue Version einer Abrechnung" }] }
+  },
+  {
+    "id": 5,
+    "type": "real",
+    "question": "Werden meine Daten an eine KI geschickt?",
+    "expect": { "sources": [{ "source_file": "heizcheck-faq-richtlinien.pdf", "heading": "HeizCheck FAQ und Richtlinien > Datenschutz und KI-Verarbeitung" }] }
+  },
+  {
+    "id": 6,
+    "type": "unanswerable",
+    "question": "Wie heißt der Geschäftsführer von HeizCheck?",
+    "expect": { "refuse": true }
+  },
+  {
+    "id": 7,
+    "type": "unanswerable",
+    "question": "Was kostet HeizCheck pro Wohnung im Monat?",
+    "expect": { "refuse": true }
+  },
+  {
+    "id": 8,
+    "type": "tricky",
+    "question": "Wie lange bleibt ein Prüfbericht gespeichert und was steht darin?",
+    "expect": {
+      "sources": [
+        { "source_file": "heizcheck-faq-richtlinien.pdf", "heading": "HeizCheck FAQ und Richtlinien > Datenspeicherung und Löschfristen" },
+        { "source_file": "heizcheck-handbuch.pdf", "heading": "HeizCheck Handbuch > Den Prüfbericht lesen" }
+      ]
+    }
+  },
+  {
+    "id": 9,
+    "type": "tricky",
+    "question": "Kann HeizCheck Abrechnungen für Eigentümergemeinschaften (WEG) prüfen?",
+    "expect": { "sources": [{ "source_file": "heizcheck-faq-richtlinien.pdf", "heading": "HeizCheck FAQ und Richtlinien > Was HeizCheck nicht tut" }] }
+  },
+  {
+    "id": 10,
+    "type": "cross-language",
+    "question": "How long is my data stored?",
+    "expect": { "sources": [{ "source_file": "heizcheck-faq-richtlinien.pdf", "heading": "HeizCheck FAQ und Richtlinien > Datenspeicherung und Löschfristen" }] }
+  }
+]
