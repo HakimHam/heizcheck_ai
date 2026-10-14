@@ -16,7 +16,7 @@ Ein Paket, das vor 4 Jahren hochgeladen wurde, ist abgelaufen und kann nicht meh
 
 Wo werden meine Daten gespeichert? Alle Daten liegen in der EU. Die Datenbank und die hochgeladenen PDFs liegen bei Supabase in Frankfurt, die Anwendung läuft bei Vercel in der EU-Region.
 
-Werden meine Daten an eine KI geschickt? Ja. Um die Zahlen aus den PDFs auszulesen, schickt HeizCheck die PDFs an das KI-Modell Claude Sonnet 5 von Anthropic. Im Betrieb geschieht das über Amazon Bedrock in der AWS-Region eu-west-1 in Irland. Die Verarbeitung bleibt so in einer einzigen EU-Region, und Bedrock speichert keine Anfragen. Anthropic hat bei Bedrock keinen Zugriff auf die Anfragen und Antworten, und Ihre Daten werden nicht zum Training von KI-Modellen verwendet.
+Werden meine Daten an eine KI geschickt? Ja. Um die Zahlen aus den PDFs auszulesen, schickt HeizCheck die PDFs an das KI-Modell Claude Sonnet 5 von Anthropic. Im Betrieb geschieht das über Amazon Bedrock in der AWS-Region eu-west-1 in Irland. Die Verarbeitung bleibt so in einer einzigen EU-Region. Bevor echte Abrechnungen verarbeitet werden, wird die Datenaufbewahrung bei Bedrock abgeschaltet (Einstellung „none“), sodass Bedrock keine Anfragen speichert. Anthropic hat bei Bedrock keinen Zugriff auf die Anfragen und Antworten, und Ihre Daten werden nicht zum Training von KI-Modellen verwendet.
 
 Die KI liest nur Zahlen aus. Sie beurteilt nicht, ob eine Abrechnung richtig ist; das tun die festen Prüfregeln.
 

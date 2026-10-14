@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { answerQuestion, buildPrompt, DEFAULT_THRESHOLD, RagOutputError, REFUSAL, type SearchHit } from './chain'
+import { answerQuestion, buildPrompt, DEFAULT_THRESHOLD, RagOutputError, REFUSAL, type SearchHit, TOP_K } from './chain'
 
 const hit = (n: number, score: number): SearchHit => ({
   score,
@@ -17,11 +17,11 @@ const hit = (n: number, score: number): SearchHit => ({
 function deps(hits: SearchHit[], reply: unknown = { answerable: true, answer: 'Nach 4 Jahren.', citations: ['heizcheck-faq-richtlinien#01'] }) {
   return {
     search: vi.fn(async () => hits),
-    generate: vi.fn(async () => (typeof reply === 'string' ? reply : JSON.stringify(reply))),
+    generate: vi.fn(async (_system: string, _user: string) => (typeof reply === 'string' ? reply : JSON.stringify(reply))),
   }
 }
 
-const t = 0.4
+const t = 0.4 // threshold under test
 
 describe('answerQuestion', () => {
   it.each([
@@ -49,6 +49,18 @@ describe('answerQuestion', () => {
     const result = await answerQuestion('Irgendwas?', deps([]), { threshold: t })
 
     expect(result).toMatchObject({ kind: 'refusal', reason: 'below_threshold' })
+  })
+
+  it('puts only the best TOP_K = 3 of more hits into the prompt', async () => {
+    const d = deps([1, 2, 3, 4, 5].map((n) => hit(n, 0.9 - n / 100)))
+
+    const result = await answerQuestion('Frage?', d, { threshold: t })
+
+    expect(TOP_K).toBe(3)
+    expect(result.retrieved).toHaveLength(3)
+    const user = d.generate.mock.calls[0][1] as string
+    expect(user).toContain('[3] heizcheck-faq-richtlinien#03')
+    expect(user).not.toContain('heizcheck-faq-richtlinien#04')
   })
 
   it('uses a default threshold of 0.30', () => {

@@ -37,7 +37,7 @@ export function toSections(lines: PdfLine[]): Section[] {
   const h1Size = headingSizes[0]
 
   const sections: Section[] = []
-  let current = null as Section | null
+  let current: Section | null = null
   let previous: PdfLine | null = null
 
   for (const line of lines) {
@@ -58,7 +58,7 @@ export function toSections(lines: PdfLine[]): Section[] {
         current = { h1: text, h2: null, paragraphs: [] }
         sections.push(current)
       } else {
-        current = { h1: current?.h1 ?? '', h2: text, paragraphs: [] }
+        current = { h1: sections.at(-1)?.h1 ?? '', h2: text, paragraphs: [] }
         sections.push(current)
       }
     } else if (current) {

@@ -9,8 +9,7 @@
 import { readdir } from 'node:fs/promises'
 import path from 'node:path'
 import { mdToPdf } from 'md-to-pdf'
-
-const SOURCE_DIR = path.join('docs', 'rag-source')
+import { SOURCE_DIR } from './sources'
 
 const CSS = `
   body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 1.4; }

@@ -72,7 +72,8 @@ export async function answerQuestion(
   const reply = parseModelAnswer(await deps.generate(system, user), retrieved)
   if (!reply.answerable) return { kind: 'refusal', answer: REFUSAL, reason: 'not_in_documents', retrieved }
 
-  const sources = reply.citations.map((id) => retrieved.find((h) => h.metadata.chunk_id === id)!.metadata)
+  // parseModelAnswer has checked that every citation is one of these chunks.
+  const sources = retrieved.filter((h) => reply.citations.includes(h.metadata.chunk_id)).map((h) => h.metadata)
   return { kind: 'answer', answer: reply.answer, sources, retrieved }
 }
 

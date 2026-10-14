@@ -2,10 +2,8 @@ import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
 import type { RagResult, SearchHit } from './chain'
 import { REFUSAL } from './chain'
-import { chunkSections } from './chunks'
 import { type GoldenEntry, parseGoldenSet, scoreEntry } from './golden'
-import { readPdfLines } from './pdf-lines'
-import { toSections } from './sections'
+import { GOLDEN_SET_PATH, readSourceChunks } from './sources'
 
 const hit = (source_file: string, heading: string, id: string): SearchHit => ({
   score: 0.7,
@@ -75,6 +73,7 @@ describe('parseGoldenSet', () => {
     ['an entry with neither sources nor refuse', [{ id: 1, type: 'real', question: 'Frage?', expect: {} }]],
     ['an unknown type', [{ ...expectsSources, type: 'leicht' }]],
     ['duplicate ids', [expectsSources, expectsSources]],
+    ['a question longer than 1000 characters', [{ ...expectsSources, question: 'x'.repeat(1001) }]],
   ])('rejects %s', (_, data) => {
     expect(() => parseGoldenSet(data)).toThrow()
   })
@@ -82,12 +81,8 @@ describe('parseGoldenSet', () => {
 
 describe('the committed golden set', () => {
   it('is valid and only expects headings that exist in the indexed PDFs', async () => {
-    const golden = parseGoldenSet(JSON.parse(await readFile('scripts/rag/golden-set.json', 'utf8')))
-    const indexed = new Set<string>()
-    for (const file of ['heizcheck-handbuch.pdf', 'heizcheck-faq-richtlinien.pdf']) {
-      const lines = await readPdfLines(new Uint8Array(await readFile(`docs/rag-source/${file}`)))
-      for (const c of chunkSections(toSections(lines), file)) indexed.add(`${file} :: ${c.metadata.heading}`)
-    }
+    const golden = parseGoldenSet(JSON.parse(await readFile(GOLDEN_SET_PATH, 'utf8')))
+    const indexed = new Set((await readSourceChunks()).map((c) => `${c.metadata.source_file} :: ${c.metadata.heading}`))
 
     expect(golden).toHaveLength(10)
     for (const entry of golden) {

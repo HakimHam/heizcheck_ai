@@ -14,9 +14,15 @@ export const EMBEDDING_DIMENSION = 1536
 /** The workshop's shared namespace, which this RAG must never write to. */
 const SHARED_NAMESPACE = 'workshop-shared'
 
+const key = (name: string) => {
+  const message = `Missing ${name} — set it in .env.local`
+  return z.string({ error: message }).min(1, message)
+}
+
 const configSchema = z.object({
-  OPENAI_API_KEY: z.string({ error: 'Missing OPENAI_API_KEY — set it in .env.local' }).min(1),
-  PINECONE_API_KEY: z.string({ error: 'Missing PINECONE_API_KEY — set it in .env.local' }).min(1),
+  OPENAI_API_KEY: key('OPENAI_API_KEY'),
+  PINECONE_API_KEY: key('PINECONE_API_KEY'),
+  ANTHROPIC_API_KEY: key('ANTHROPIC_API_KEY'),
   RAG_PINECONE_INDEX: z.string().min(1).default('heizcheck-rag'),
   RAG_PINECONE_NAMESPACE: z
     .string()
@@ -26,7 +32,13 @@ const configSchema = z.object({
 })
 
 /** Keys and the Pinecone index and namespace the RAG uses. */
-export type RagConfig = { openaiApiKey: string; pineconeApiKey: string; index: string; namespace: string }
+export type RagConfig = {
+  openaiApiKey: string
+  pineconeApiKey: string
+  anthropicApiKey: string
+  index: string
+  namespace: string
+}
 
 /**
  * Reads the RAG's settings from the environment, defaulting to the
@@ -41,6 +53,7 @@ export function ragConfig(env: Record<string, string | undefined>): RagConfig {
   return {
     openaiApiKey: c.OPENAI_API_KEY,
     pineconeApiKey: c.PINECONE_API_KEY,
+    anthropicApiKey: c.ANTHROPIC_API_KEY,
     index: c.RAG_PINECONE_INDEX,
     namespace: c.RAG_PINECONE_NAMESPACE,
   }
@@ -65,19 +78,41 @@ export function parseMatch(match: unknown): SearchHit {
   return parsed.data
 }
 
-/** The OpenAI and Pinecone clients for one config, with the operations the RAG needs. */
-export function vectorStore(config: RagConfig) {
-  const openai = new OpenAI({ apiKey: config.openaiApiKey })
-  const pinecone = new Pinecone({ apiKey: config.pineconeApiKey })
+const indexSchema = z.object({ host: z.string().min(1), dimension: z.number().int() })
 
-  async function namespace() {
-    const description = await pinecone.describeIndex(config.index)
-    return { ns: pinecone.index(config.index, description.host).namespace(config.namespace), description }
+const embeddingsSchema = z.object({
+  data: z.array(z.object({ index: z.number().int(), embedding: z.array(z.number()).length(EMBEDDING_DIMENSION) })),
+})
+
+/** The SDK clients the store talks to; tests pass doubles. */
+export type StoreClients = { openai: OpenAI; pinecone: Pinecone }
+
+/**
+ * Reseeding and searching our namespace. Responses from Pinecone and OpenAI
+ * are checked before use: a wrong index dimension or a missing embedding
+ * stops the seed instead of storing broken vectors.
+ */
+export function vectorStore(
+  config: RagConfig,
+  { openai, pinecone }: StoreClients = {
+    openai: new OpenAI({ apiKey: config.openaiApiKey }),
+    pinecone: new Pinecone({ apiKey: config.pineconeApiKey }),
+  },
+) {
+  /** Our index, after checking Pinecone's description of it. */
+  async function openIndex() {
+    const parsed = indexSchema.safeParse(await pinecone.describeIndex(config.index))
+    if (!parsed.success) throw new Error(`Unexpected Pinecone index description: ${parsed.error.message}`)
+    return { index: pinecone.index(config.index, parsed.data.host), dimension: parsed.data.dimension }
   }
 
   async function embed(texts: string[]): Promise<number[][]> {
-    const response = await openai.embeddings.create({ model: EMBEDDING_MODEL, input: texts })
-    return response.data.sort((a, b) => a.index - b.index).map((d) => d.embedding)
+    const parsed = embeddingsSchema.safeParse(await openai.embeddings.create({ model: EMBEDDING_MODEL, input: texts }))
+    if (!parsed.success) throw new Error(`Unexpected OpenAI embedding response: ${parsed.error.message}`)
+    if (parsed.data.data.length !== texts.length) {
+      throw new Error(`OpenAI returned ${parsed.data.data.length} embeddings for ${texts.length} texts`)
+    }
+    return parsed.data.data.sort((a, b) => a.index - b.index).map((d) => d.embedding)
   }
 
   return {
@@ -94,24 +129,22 @@ export function vectorStore(config: RagConfig) {
           waitUntilReady: true,
         })
       }
-      const { ns, description } = await namespace()
-      if (description.dimension !== EMBEDDING_DIMENSION) {
-        throw new Error(
-          `Index "${config.index}" has ${description.dimension} dimensions; ${EMBEDDING_MODEL} needs ${EMBEDDING_DIMENSION}`,
-        )
+      const { index, dimension } = await openIndex()
+      if (dimension !== EMBEDDING_DIMENSION) {
+        throw new Error(`Index "${config.index}" has ${dimension} dimensions; ${EMBEDDING_MODEL} needs ${EMBEDDING_DIMENSION}`)
       }
       const vectors = await embed(chunks.map((c) => c.embedText))
+      const ns = index.namespace(config.namespace)
       // deleteAll fails on a namespace that doesn't exist yet, i.e. on the first seed.
-      const stats = await pinecone.index(config.index, description.host).describeIndexStats()
-      if (stats.namespaces?.[config.namespace]) await ns.deleteAll()
+      if ((await index.describeIndexStats()).namespaces?.[config.namespace]) await ns.deleteAll()
       await ns.upsert({ records: chunks.map((c, i) => ({ id: c.id, values: vectors[i], metadata: c.metadata })) })
     },
 
     /** The `topK` chunks closest to `question`, best first. */
     async search(question: string, topK: number): Promise<SearchHit[]> {
-      const { ns } = await namespace()
+      const { index } = await openIndex()
       const [vector] = await embed([question])
-      const result = await ns.query({ vector, topK, includeMetadata: true })
+      const result = await index.namespace(config.namespace).query({ vector, topK, includeMetadata: true })
       return (result.matches ?? []).map(parseMatch)
     },
   }

@@ -1,6 +1,6 @@
 # Spec: HeizCheck own RAG
 
-Status: needs-triage
+Status: done (built and evaluated 2026-10-14; golden set 10/10)
 
 Bootcamp exercise "Build your own RAG" (LLM, MCP, LangChain & Vector integration):
 index two of our own PDFs, retrieve from our own vector store, and prove it works —
@@ -121,6 +121,21 @@ final list before the first `rag:eval` run.
 `npm run rag:eval` runs all 10 against the live index and prints:
 question · expected source/heading · retrieved · cited · refused? · PASS/FAIL.
 Answer wording is spot-checked by hand.
+
+### Results and deviations (2026-10-14)
+
+- **Threshold stays at 0.30, and it can't separate on-topic unanswerables.** Measured top scores:
+  real questions 0.607–0.759, unanswerable #6/#7 0.623/0.684, English #10 0.444, off-topic
+  "Wetter in Berlin" 0.276. Every chunk is about HeizCheck, so "CEO of HeizCheck" scores like a real
+  question; those are refused by the model (`not_in_documents`). The threshold only stops off-topic
+  questions without a model call. Raising it above 0.444 would start refusing #10.
+- **Golden wording:** #2 expects `Handbuch › Prüfregel B1: Abrechnungsfrist nach §556 BGB` (one H2 per
+  rule, per section 1, not a "Prüfregeln" section). #4 reads "…eine neue Version einer Abrechnung
+  hochlade?" so the question names what is uploaded.
+- **Chunk size:** the 1,000-char limit applies to each piece *before* the overlap; a later chunk can
+  reach ~1,150 chars. Kept: the overlap is meant to come on top.
+- **Extra Handbuch section** "Ausgelesene Zahlen bestätigen" (MVP spec stories 24–41) and an extra
+  `npm run rag:ask` CLI for single questions.
 
 ## 8. Done when
 

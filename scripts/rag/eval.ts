@@ -6,12 +6,12 @@
 // Re-run after any pipeline change: documents, chunking, threshold, prompt or model.
 
 import { readFile } from 'node:fs/promises'
-import path from 'node:path'
 import { answerQuestion, type RagResult } from './chain'
 import { parseGoldenSet, scoreEntry } from './golden'
 import { liveDeps } from './live'
+import { GOLDEN_SET_PATH } from './sources'
 
-const golden = parseGoldenSet(JSON.parse(await readFile(path.join('scripts', 'rag', 'golden-set.json'), 'utf8')))
+const golden = parseGoldenSet(JSON.parse(await readFile(GOLDEN_SET_PATH, 'utf8')))
 const deps = liveDeps(process.env)
 
 let passed = 0
@@ -26,7 +26,7 @@ for (const entry of golden) {
   }
   if (score.pass) passed++
 
-  const expected = 'refuse' in entry.expect ? 'refuse' : entry.expect.sources.map((s) => s.heading).join(' + ')
+  const expected = 'refuse' in entry.expect ? 'refuse' : entry.expect.sources.map((s) => `${s.source_file} › ${s.heading}`).join(' + ')
   console.log(`\n${score.pass ? 'PASS' : 'FAIL'}  #${entry.id} [${entry.type}] ${entry.question}`)
   console.log(`  expected:  ${expected}`)
   if (result) {

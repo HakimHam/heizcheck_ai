@@ -1,12 +1,13 @@
 import { z } from 'zod'
-import type { RagResult } from './chain'
+import { questionSchema, type RagResult } from './chain'
+import type { ChunkMetadata } from './chunks'
 
 const expectedSource = z.object({ source_file: z.string().min(1), heading: z.string().min(1) })
 
 const goldenEntrySchema = z.object({
   id: z.number().int().positive(),
   type: z.enum(['real', 'unanswerable', 'tricky', 'cross-language']),
-  question: z.string().min(3),
+  question: questionSchema,
   expect: z.union([
     z.object({ refuse: z.literal(true) }).strict(),
     z.object({ sources: z.array(expectedSource).min(1) }).strict(),
@@ -48,15 +49,20 @@ export function scoreEntry(entry: GoldenEntry, result: RagResult): GoldenScore {
   }
 
   const expected = entry.expect.sources
-  const matches = (m: { source_file: string; heading: string }) => (e: { source_file: string; heading: string }) =>
-    m.source_file === e.source_file && m.heading === e.heading
-  const retrievedExpected = expected.every((e) => result.retrieved.some((h) => matches(h.metadata)(e)))
+  const retrievedExpected = expected.every((e) => result.retrieved.some((h) => sameSection(h.metadata, e)))
 
   if (result.kind === 'refusal') {
     return { pass: false, retrievedExpected, detail: `refused (${result.reason}), but should have answered` }
   }
-  const missing = expected.filter((e) => !result.sources.some((s) => matches(s)(e)))
+  const missing = expected.filter((e) => !result.sources.some((s) => sameSection(s, e)))
   return missing.length
     ? { pass: false, retrievedExpected, detail: `did not cite ${missing.map((m) => m.heading).join(', ')}` }
     : { pass: true, retrievedExpected, detail: 'cited every expected source' }
+}
+
+/** The part of a chunk's metadata a golden entry names: which PDF, and which section in it. */
+type SectionRef = Pick<ChunkMetadata, 'source_file' | 'heading'>
+
+function sameSection(a: SectionRef, b: SectionRef): boolean {
+  return a.source_file === b.source_file && a.heading === b.heading
 }

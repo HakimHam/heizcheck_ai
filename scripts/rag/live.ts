@@ -2,7 +2,7 @@
 // LangChain. Kept apart from chain.ts so the tests never need keys.
 
 import { ChatAnthropic } from '@langchain/anthropic'
-import { HumanMessage, SystemMessage } from '@langchain/core/messages'
+import { type AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages'
 import { type RagDeps, TOP_K } from './chain'
 import { ragConfig, vectorStore } from './store'
 
@@ -15,20 +15,27 @@ export const ANSWER_MODEL = 'claude-haiku-5-5'
 
 /** Search and generation wired to Pinecone, OpenAI and Claude, configured from `env`. */
 export function liveDeps(env: Record<string, string | undefined>): RagDeps {
-  if (!env.ANTHROPIC_API_KEY) throw new Error('Missing ANTHROPIC_API_KEY — set it in .env.local')
-  const store = vectorStore(ragConfig(env))
+  const config = ragConfig(env)
+  const store = vectorStore(config)
   // No temperature: the API rejects it for this model ("`temperature` is deprecated").
   // Answers can therefore vary in wording between runs; the golden set scores
   // citations and refusals, not wording.
-  const llm = new ChatAnthropic({ model: ANSWER_MODEL, apiKey: env.ANTHROPIC_API_KEY })
+  const llm = new ChatAnthropic({ model: ANSWER_MODEL, apiKey: config.anthropicApiKey })
 
   return {
     search: (question) => store.search(question, TOP_K),
-    async generate(system, user) {
-      const response = await llm.invoke([new SystemMessage(system), new HumanMessage(user)])
-      return typeof response.content === 'string'
-        ? response.content
-        : response.content.map((part) => ('text' in part && typeof part.text === 'string' ? part.text : '')).join('')
-    },
+    generate: async (system, user) => replyText((await llm.invoke([new SystemMessage(system), new HumanMessage(user)])).content),
   }
+}
+
+/**
+ * The text of a chat reply. LangChain gives either a string or a list of
+ * content parts (text, thinking, …); only the text parts make up the answer.
+ *
+ * `replyText([{type: 'text', text: '{"answerable": '}, {type: 'thinking', …}, {type: 'text', text: 'false}'}])`
+ * → `'{"answerable": false}'`
+ */
+export function replyText(content: AIMessage['content']): string {
+  if (typeof content === 'string') return content
+  return content.map((part) => (part.type === 'text' && typeof part.text === 'string' ? part.text : '')).join('')
 }

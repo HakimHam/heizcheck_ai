@@ -6,22 +6,13 @@
 // sections and replaces the whole namespace with the result, so re-running it
 // never leaves stale or duplicate chunks behind.
 
-import { readdir, readFile } from 'node:fs/promises'
-import path from 'node:path'
-import { type Chunk, chunkSections } from './chunks'
-import { readPdfLines } from './pdf-lines'
-import { toSections } from './sections'
+import { readSourceChunks } from './sources'
 import { ragConfig, vectorStore } from './store'
 
-const SOURCE_DIR = path.join('docs', 'rag-source')
-
 const config = ragConfig(process.env)
-const chunks: Chunk[] = []
-for (const file of (await readdir(SOURCE_DIR)).filter((f) => f.endsWith('.pdf'))) {
-  const lines = await readPdfLines(new Uint8Array(await readFile(path.join(SOURCE_DIR, file))))
-  const fileChunks = chunkSections(toSections(lines), file)
-  console.log(`${file}: ${fileChunks.length} chunks`)
-  chunks.push(...fileChunks)
+const chunks = await readSourceChunks()
+for (const file of new Set(chunks.map((c) => c.metadata.source_file))) {
+  console.log(`${file}: ${chunks.filter((c) => c.metadata.source_file === file).length} chunks`)
 }
 
 await vectorStore(config).reseed(chunks)

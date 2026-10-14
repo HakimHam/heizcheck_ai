@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chunkSections, MAX_CHUNK_CHARS } from './chunks'
+import { chunkSections, MAX_CHUNK_CHARS, OVERLAP_CHARS } from './chunks'
 import type { Section } from './sections'
 
 /** German-looking filler text of exactly `length` characters, made of whole words. */
@@ -25,6 +25,28 @@ describe('chunkSections', () => {
     expect(chunks[0].metadata.chunk_text).toHaveLength(1000)
   })
 
+  it('keeps a section one character under the maximum as one chunk', () => {
+    // 498 + 2 + 499 = 999.
+    expect(chunkSections([section('Upload', words(498), words(499))], 'heizcheck-handbuch.pdf')).toHaveLength(1)
+  })
+
+  // A previous piece of up to OVERLAP_CHARS is repeated whole; a longer one only
+  // from its last word start within OVERLAP_CHARS.
+  it.each([
+    { length: 149, whole: true },
+    { length: 150, whole: true },
+    { length: 151, whole: false },
+  ])('repeats a previous piece of $length chars whole: $whole', ({ length, whole }) => {
+    const first = words(length)
+    const second = words(900)
+    const chunks = chunkSections([section('Upload', first, second)], 'heizcheck-handbuch.pdf')
+
+    const overlap = chunks[1].metadata.chunk_text.replace(`\n\n${second}`, '')
+    expect(OVERLAP_CHARS).toBe(150)
+    expect(overlap === first).toBe(whole)
+    expect(overlap.length).toBeLessThanOrEqual(OVERLAP_CHARS)
+  })
+
   it('splits a section one character over the maximum on the paragraph boundary, with overlap', () => {
     // 500 + 2 + 499 = 1001.
     const first = words(500)
@@ -36,7 +58,7 @@ describe('chunkSections', () => {
     const overlap = chunks[1].metadata.chunk_text.replace(`\n\n${second}`, '')
     expect(first.endsWith(overlap)).toBe(true)
     expect(overlap.length).toBeGreaterThan(100)
-    expect(overlap.length).toBeLessThanOrEqual(150)
+    expect(overlap.length).toBeLessThanOrEqual(OVERLAP_CHARS)
     expect(overlap.startsWith(' ')).toBe(false)
   })
 
@@ -44,7 +66,7 @@ describe('chunkSections', () => {
     const chunks = chunkSections([section('Upload', words(2500))], 'heizcheck-handbuch.pdf')
 
     expect(chunks.length).toBeGreaterThanOrEqual(3)
-    for (const c of chunks) expect(c.metadata.chunk_text.length).toBeLessThanOrEqual(MAX_CHUNK_CHARS + 150 + 2)
+    for (const c of chunks) expect(c.metadata.chunk_text.length).toBeLessThanOrEqual(MAX_CHUNK_CHARS + OVERLAP_CHARS + 2)
     for (const c of chunks) expect(c.metadata.chunk_text).not.toMatch(/(^ | $|Wor$)/)
   })
 
