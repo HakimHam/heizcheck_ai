@@ -10,6 +10,7 @@ import {
   warningsLabel,
 } from '@/lib/check-report'
 import { formatDate } from '@/lib/dates'
+import { ExplainFinding } from './explain-finding'
 import { formatCents } from '@/lib/money'
 import type { CheckReport } from '@/lib/statement-packages'
 
@@ -28,7 +29,11 @@ function FindingView({ finding }: { finding: Finding }) {
   )
 }
 
-export function CheckReportView({ report }: { report: CheckReport }) {
+/**
+ * The Check Report on the package page. `explainEnabled` adds an "Erklären"
+ * button to each rule with a Finding (ticket 20, dev/demo only per ADR 0005).
+ */
+export function CheckReportView({ report, explainEnabled = false }: { report: CheckReport; explainEnabled?: boolean }) {
   const { errors, warnings, notAssessable } = summarise(report.results)
   return (
     <section className="stack">
@@ -63,6 +68,7 @@ export function CheckReportView({ report }: { report: CheckReport }) {
                 ))}
               </ul>
             )}
+            {result.status === 'finding' && explainEnabled && <ExplainFinding ruleId={result.rule} />}
           </li>
         ))}
       </ol>

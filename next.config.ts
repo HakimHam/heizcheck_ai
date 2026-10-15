@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
     // Extraction reads PDFs with pdf.js, whose Node build loads its worker from disk.
     '/pakete/*': ['./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'],
     '/gebaeude/*/hochladen': ['./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'],
+    // The explain chat reads its markdown knowledge base from disk (ticket 20).
+    '/api/erklaerung': ['./knowledge/*.md'],
   },
   serverExternalPackages: ['pdfjs-dist'],
 }

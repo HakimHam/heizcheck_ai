@@ -8,6 +8,7 @@ import { HistoryLink } from '@/components/history-link'
 import { ConfirmForm } from '@/components/confirm-form'
 import { PackageProgress } from '@/components/package-progress'
 import { formatAddress, unknownFacts } from '@/lib/building-profile'
+import { explainChatEnabled } from '@/lib/explain-chat/explain'
 import { getBuilding } from '@/lib/buildings'
 import { formatBillingPeriod, formatDate } from '@/lib/dates'
 import { currentOf } from '@/lib/package-history'
@@ -119,7 +120,7 @@ export default async function PackagePage({ params }: Props) {
         </>
       )}
 
-      {report && <CheckReportView report={report} />}
+      {report && <CheckReportView report={report} explainEnabled={explainChatEnabled()} />}
     </>
   )
 }

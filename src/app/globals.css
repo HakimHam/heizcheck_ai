@@ -191,3 +191,11 @@ button.source:hover { color: var(--text); }
 textarea {
   font: inherit; padding: 0.5rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; resize: vertical;
 }
+
+/* The explain chat (ticket 20): an "Erklären" panel under a rule with a Finding. */
+.explain-toggle { margin-top: 0.5rem; padding: 0.25rem 0.75rem; font-size: 0.85rem; }
+.explain-panel { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--border); gap: 0.6rem; }
+.explain-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.explain-answer { background: var(--bg); border-radius: 6px; padding: 0.6rem 0.8rem; }
+.explain-answer p { margin: 0; white-space: pre-line; }
+.explain-answer .hint { margin-top: 0.5rem; }
