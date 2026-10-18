@@ -94,4 +94,6 @@ Things that may need fixing by hand, because they depend on the n8n version:
 
 ## Screenshot
 
-Add the screenshot of the workflow in n8n here: `docs/images/n8n-help-chat.png`.
+The workflow after import into n8n Cloud:
+
+![The help chat workflow in n8n](images/n8n-help-chat.png)
