@@ -84,7 +84,8 @@ Write down here whatever happens when you import into n8n: the error message, an
 
 | # | Error | Fix |
 |---|---|---|
-| 1 | | |
+| 1 | HeizCheck showed "Nachricht konnte nicht gesendet werden"; the dev server logged `POST /api/hilfe 502`. n8n answered HTTP 403 "Authorization data is wrong!". | `N8N_HELP_WEBHOOK_SECRET` was empty. Set it to the same value as the Webhook's Header Auth credential (Name `X-HeizCheck-Secret`), and restart `npm run dev`. |
+| 2 | `.env.local` pointed at the test URL `/webhook-test/heizcheck-hilfe`, which only answers right after "Listen for test event" in the editor. | Use the Production URL `/webhook/heizcheck-hilfe`, with the workflow set to Active. |
 
 Things that may need fixing by hand, because they depend on the n8n version:
 

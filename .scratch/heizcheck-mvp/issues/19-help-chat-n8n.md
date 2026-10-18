@@ -4,7 +4,7 @@
 
 **Blocked by:** none. Needs the n8n Cloud account (`ai-software-egnineering.app.n8n.cloud`), a Gmail credential in n8n and the existing Anthropic API key as an n8n credential.
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Switch**
 
@@ -73,7 +73,7 @@
 
 **Docs**
 
-- [ ] `docs/n8n-help-chat.md` covers (setup and import steps written; the import errors and the screenshot need a human in n8n):
+- [x] `docs/n8n-help-chat.md` covers:
   - setup: credentials, the Data Table, the webhook URL and secret in `.env.local`
   - how to import the workflow
   - the import errors met and their fixes
@@ -82,8 +82,10 @@
 
 **Data**
 
-- [ ] Test only with made-up messages, never real Tenant data (ADR 0004).
+- [x] Test only with made-up messages, never real Tenant data (ADR 0004).
 
 ## Comments
 
 **2026-10-13 (agent):** Built with TDD at three seams: `forwardHelpMessage`, `POST /api/hilfe`, `helpChatEnabled`. `src/lib/help-chat-workflow.test.ts` checks the committed n8n workflow against the code. Still open for a human: import into n8n, then note the import errors and fixes and add the screenshot in `docs/n8n-help-chat.md`. The widget has no tests (the project has no jsdom). Its `maxLength` counts untrimmed text; the server trims.
+
+**2026-10-18 (human + agent):** Imported into n8n Cloud and tested end to end with made-up messages. The import errors (missing secret → 403, test URL instead of production URL) and the screenshot are in `docs/n8n-help-chat.md`.
