@@ -4,7 +4,7 @@
 
 **Blocked by:** none. Needs the n8n Cloud account (`ai-software-egnineering.app.n8n.cloud`), a Gmail credential in n8n and the existing Anthropic API key as an n8n credential.
 
-**Status:** done
+**Status:** ready-for-agent
 
 **Switch**
 
