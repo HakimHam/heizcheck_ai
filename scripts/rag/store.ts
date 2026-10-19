@@ -140,10 +140,11 @@ export function vectorStore(
       await ns.upsert({ records: chunks.map((c, i) => ({ id: c.id, values: vectors[i], metadata: c.metadata })) })
     },
 
-    /** The `topK` chunks closest to `question`, best first. */
-    async search(question: string, topK: number): Promise<SearchHit[]> {
+    /** The `topK` chunks closest to `question`, best first; `onEmbedding` sees the question's vector. */
+    async search(question: string, topK: number, onEmbedding?: (vector: number[]) => void): Promise<SearchHit[]> {
       const { index } = await openIndex()
       const [vector] = await embed([question])
+      onEmbedding?.(vector)
       const result = await index.namespace(config.namespace).query({ vector, topK, includeMetadata: true })
       return (result.matches ?? []).map(parseMatch)
     },

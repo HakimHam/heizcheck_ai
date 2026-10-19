@@ -165,4 +165,13 @@ describe('vectorStore', () => {
     expect(hits).toEqual([{ score: 0.7, metadata }])
     expect(f.ns.query).toHaveBeenCalledWith({ vector: vector(), topK: 3, includeMetadata: true })
   })
+
+  it('hands the question vector to onEmbedding before querying', async () => {
+    const f = fakeClients()
+    const onEmbedding = vi.fn()
+
+    await f.store.search('Wie lege ich ein Gebäude an?', 3, onEmbedding)
+
+    expect(onEmbedding).toHaveBeenCalledWith(vector())
+  })
 })

@@ -100,6 +100,29 @@ describe('answerQuestion', () => {
   })
 })
 
+describe('answerQuestion with onStep', () => {
+  it('reports the prompt it sends and the raw reply it gets back', async () => {
+    const d = deps([hit(1, 0.9)])
+    const onStep = vi.fn()
+
+    await answerQuestion('Wann wird gelöscht?', d, { threshold: t, onStep })
+
+    const { system, user } = buildPrompt('Wann wird gelöscht?', [hit(1, 0.9)])
+    expect(onStep.mock.calls).toEqual([
+      [{ step: 'prompt', system, user }],
+      [{ step: 'reply', raw: await d.generate.mock.results[0].value }],
+    ])
+  })
+
+  it('reports nothing when it refuses below the threshold, since no prompt is sent', async () => {
+    const onStep = vi.fn()
+
+    await answerQuestion('Wetter?', deps([hit(1, 0.1)]), { threshold: t, onStep })
+
+    expect(onStep).not.toHaveBeenCalled()
+  })
+})
+
 describe('buildPrompt', () => {
   it('numbers every retrieved chunk with its id, source, heading and page', () => {
     const { user } = buildPrompt('Wann wird gelöscht?', [hit(1, 0.8), hit(2, 0.7), hit(3, 0.6)])

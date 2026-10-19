@@ -38,6 +38,9 @@ export type RagResult =
   | { kind: 'answer'; answer: string; sources: ChunkMetadata[]; retrieved: SearchHit[] }
   | { kind: 'refusal'; answer: typeof REFUSAL; reason: 'below_threshold' | 'not_in_documents'; retrieved: SearchHit[] }
 
+/** A step inside the chain, reported so `rag:ask --trace` can show what the model saw and said. */
+export type ChainStep = { step: 'prompt'; system: string; user: string } | { step: 'reply'; raw: string }
+
 /** The model replied with something other than a valid, honestly cited answer. */
 export class RagOutputError extends Error {
   override name = 'RagOutputError'
@@ -61,7 +64,7 @@ const modelAnswerSchema = z.object({
 export async function answerQuestion(
   question: string,
   deps: RagDeps,
-  { threshold = DEFAULT_THRESHOLD }: { threshold?: number } = {},
+  { threshold = DEFAULT_THRESHOLD, onStep }: { threshold?: number; onStep?: (step: ChainStep) => void } = {},
 ): Promise<RagResult> {
   const retrieved = (await deps.search(question)).slice(0, TOP_K)
   if (!retrieved.length || retrieved[0].score < threshold) {
@@ -69,7 +72,10 @@ export async function answerQuestion(
   }
 
   const { system, user } = buildPrompt(question, retrieved)
-  const reply = parseModelAnswer(await deps.generate(system, user), retrieved)
+  onStep?.({ step: 'prompt', system, user })
+  const raw = await deps.generate(system, user)
+  onStep?.({ step: 'reply', raw })
+  const reply = parseModelAnswer(raw, retrieved)
   if (!reply.answerable) return { kind: 'refusal', answer: REFUSAL, reason: 'not_in_documents', retrieved }
 
   // parseModelAnswer has checked that every citation is one of these chunks.

@@ -13,8 +13,14 @@ import { ragConfig, vectorStore } from './store'
  */
 export const ANSWER_MODEL = 'claude-haiku-5-5'
 
-/** Search and generation wired to Pinecone, OpenAI and Claude, configured from `env`. */
-export function liveDeps(env: Record<string, string | undefined>): RagDeps {
+/**
+ * Search and generation wired to Pinecone, OpenAI and Claude, configured from
+ * `env`. `onEmbedding` sees each question's vector, for `rag:ask --trace`.
+ */
+export function liveDeps(
+  env: Record<string, string | undefined>,
+  { onEmbedding }: { onEmbedding?: (vector: number[]) => void } = {},
+): RagDeps {
   const config = ragConfig(env)
   const store = vectorStore(config)
   // No temperature: the API rejects it for this model ("`temperature` is deprecated").
@@ -23,7 +29,7 @@ export function liveDeps(env: Record<string, string | undefined>): RagDeps {
   const llm = new ChatAnthropic({ model: ANSWER_MODEL, apiKey: config.anthropicApiKey })
 
   return {
-    search: (question) => store.search(question, TOP_K),
+    search: (question) => store.search(question, TOP_K, onEmbedding),
     generate: async (system, user) => replyText((await llm.invoke([new SystemMessage(system), new HumanMessage(user)])).content),
   }
 }
