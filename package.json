@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "eval": "node --env-file-if-exists=.env.local --import tsx eval/run.ts",
+    "eval:explain": "node --env-file-if-exists=.env.local --import tsx eval/explain-chat.ts",
     "make-fixture": "tsx eval/make-fixture.ts",
     "rag:pdf": "tsx scripts/rag/export-pdfs.ts",
     "rag:seed": "node --env-file-if-exists=.env.local --import tsx scripts/rag/seed.ts",
