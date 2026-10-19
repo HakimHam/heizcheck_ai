@@ -597,6 +597,17 @@ describe('B1: the §556 Abs. 3 BGB deadline', () => {
     expect(b1('2025-12-31', '2026-12-02')).toEqual({ rule: 'B1', status: 'passed' })
   })
 
+  // The four-week window (§188 Abs. 2 BGB): exactly 28 days left still passes, 27 days warns.
+  it('passes when the Dispatch Date is exactly 28 days before the deadline', () => {
+    expect(b1('2025-12-31', '2026-12-03')).toEqual({ rule: 'B1', status: 'passed' })
+  })
+
+  it('raises a Warning when the Dispatch Date is 27 days before the deadline', () => {
+    const r = b1('2025-12-31', '2026-12-04')
+    expect(r.status === 'finding' && r.findings[0].severity).toBe('warning')
+    expect(r.status === 'finding' && r.findings[0].message).toMatch(/nur 27 Tage/)
+  })
+
   it('raises a Warning when the Dispatch Date is the deadline day', () => {
     const r = b1('2025-12-31', '2026-12-31')
     expect(r.status === 'finding' && r.findings[0].severity).toBe('warning')
