@@ -49,6 +49,13 @@ describe('explainChatEnabled (ADR 0005)', () => {
     expect(explainChatEnabled({ EXPLAIN_CHAT_ENABLED: 'true', VERCEL_ENV: 'production' })).toBe(false)
     expect(explainChatEnabled({ EXPLAIN_CHAT_ENABLED: 'true', VERCEL_ENV: 'preview' })).toBe(true)
   })
+
+  it('runs on Vercel production only when EXPLAIN_CHAT_IN_PRODUCTION is "true" as well', () => {
+    const production = { EXPLAIN_CHAT_ENABLED: 'true', VERCEL_ENV: 'production' }
+    expect(explainChatEnabled({ ...production, EXPLAIN_CHAT_IN_PRODUCTION: 'true' })).toBe(true)
+    expect(explainChatEnabled({ ...production, EXPLAIN_CHAT_IN_PRODUCTION: '1' })).toBe(false)
+    expect(explainChatEnabled({ VERCEL_ENV: 'production', EXPLAIN_CHAT_IN_PRODUCTION: 'true' })).toBe(false)
+  })
 })
 
 describe('explainFinding: input', () => {

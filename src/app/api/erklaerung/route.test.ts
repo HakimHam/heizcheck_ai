@@ -78,4 +78,11 @@ describe('POST /api/erklaerung', () => {
     const response = await call(JSON.stringify({ ruleId: 'B1', question: 'Was tun?' }))
     expect(response.status).toBe(404)
   })
+
+  it('answers on Vercel production once EXPLAIN_CHAT_IN_PRODUCTION is set (demo opt-in)', async () => {
+    vi.stubEnv('VERCEL_ENV', 'production')
+    vi.stubEnv('EXPLAIN_CHAT_IN_PRODUCTION', 'true')
+    const response = await call(JSON.stringify({ ruleId: 'B1', question: 'Was tun?' }))
+    expect(response.status).toBe(200)
+  })
 })

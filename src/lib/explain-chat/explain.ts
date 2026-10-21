@@ -8,10 +8,12 @@ import { retrieve } from './retrieve'
 /**
  * Whether the "Erklären" button and `/api/erklaerung` exist. Dev/demo only
  * (ADR 0005): the question goes to the Claude API, which is not an EU
- * sub-processor in the AV-Vertrag, so Vercel production never turns it on.
+ * sub-processor in the AV-Vertrag, so Vercel production stays off unless
+ * EXPLAIN_CHAT_IN_PRODUCTION=true is set as a deliberate demo opt-in.
  */
 export function explainChatEnabled(env: Env = process.env): boolean {
-  return env.EXPLAIN_CHAT_ENABLED === 'true' && env.VERCEL_ENV !== 'production'
+  if (env.EXPLAIN_CHAT_ENABLED !== 'true') return false
+  return env.VERCEL_ENV !== 'production' || env.EXPLAIN_CHAT_IN_PRODUCTION === 'true'
 }
 
 /** Long enough for a real question about one Finding, short enough to keep a pasted statement out. */

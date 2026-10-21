@@ -12,7 +12,7 @@ let knowledge: Promise<KnowledgeSection[]> | undefined
  * Answers a Property Manager's question about one Check Report rule from the
  * markdown knowledge base (ticket 20). Only the rule ID and the question come
  * in; no package data is read or sent. Off unless EXPLAIN_CHAT_ENABLED=true,
- * and never on Vercel production (ADR 0005).
+ * and on Vercel production only with EXPLAIN_CHAT_IN_PRODUCTION=true (ADR 0005).
  */
 export async function POST(request: Request) {
   if (!explainChatEnabled()) return Response.json({ error: 'Not found' }, { status: 404, headers: NO_STORE })
