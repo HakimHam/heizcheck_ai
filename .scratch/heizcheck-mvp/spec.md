@@ -241,15 +241,19 @@ Every Finding cites its paragraph in `legalReference`.
   - **Deadline:** Billing Period end + 12 **calendar months**, per §188 para 2 BGB, never 365 days. If the target month is shorter, the deadline is its last day (§188 para 3); a period ending 28 Feb 2025, for example, has a deadline of 28 Feb 2026.
   - **Error:** if the Dispatch Date is after the deadline.
   - **Warning:** if the Dispatch Date falls within 4 weeks (28 days, §188 para 2 BGB) before the deadline.
-- Findings are ordered with Errors before Warnings, then in catalogue order.
+- The Check Report lists Check Results grouped by rule: rules with an Error first, then rules with only Warnings, then Not assessable, then Passed, each group in catalogue order. Within a rule, Errors come before Warnings. A rule's Warning can therefore appear before another rule's Error; keeping each rule's Findings together was chosen over a flat list (decided 2026-10-04, ticket 13).
 
 ### Supersession
 
 Uploading a package for a building and Billing Period that already has one marks the older package `superseded_by` the new one. Nothing is deleted. Views default to the current package and link to its history.
 
+- The Billing Period is a Confirmed Figure, so it isn't known at upload. Supersession therefore happens when the new package is confirmed, in the same transaction as its Check Report: of all confirmed packages for the building and Billing Period, the newest upload is current, and each other current one is marked `superseded_by` it. Until then the older package stays current. An unknown Billing Period supersedes nothing. A package stays superseded; only `confirm_statement_package` sets the link (decided 2026-10-04, ticket 14).
+- A package's history is every package linked to the same current package through `superseded_by`, oldest first.
+- Each Check Report snapshots the building's address when it is created, as it does the Building Profile. The report view and PDF export use that snapshot.
+
 ## Testing Decisions
 
-- **What makes a good test:** it exercises behaviour only through the two seams and asserts on observable output (Check Results, Findings, Extracted Figures). It never reaches into rule internals, prompt text or database layout. Tests are written test-first (red-green-refactor).
+- **What makes a good test:** it exercises behaviour only through the seams below and asserts on observable output (Check Results, Findings, Extracted Figures). It never reaches into rule internals, prompt text or database layout. Tests are written test-first (red-green-refactor).
 - **Seam 1: check engine (`checkPackage`).** This is the main test surface.
   - Per rule: Passed, Finding raised and Not assessable cases, including boundaries:
     - C1 at exactly ±€0.05 × n.
@@ -269,14 +273,15 @@ Uploading a package for a building and Billing Period that already has one marks
     - Missing split or tier, giving the 3% Warning.
     - A test that the tenant and landlord shares aren't swapped.
   - A "clean package" fixture where all 11 rules pass.
-  - **Planted-error fixtures:** a copy of a clean package for each rule, with one planted error, asserting that only that rule raises a Finding. This mirrors the success criterion "all deliberately planted errors are caught".
+  - **Planted-error fixtures:** a copy of a clean package for each rule, with one planted error, asserting that only that rule raises a Finding. This mirrors the success criterion "all deliberately planted errors are caught". One exception: an H4 error implies estimated readings, so its fixture also raises H5.
   - Invariants: exactly one Check Result per rule; deterministic output for the same input; the Ruleset version is stamped; every Finding has a legal reference.
   - Mapping-table tests for H3: known Minol names map, unknown names give a Warning, and ineligible names give an Error.
 - **Seam 2: Extractor.**
   - An eval suite runs the Bedrock adapter against 5–10 real, anonymised Minol Statement Packages, with hand-labelled expected figures, including the CO₂ fields and the printed area precision. It reports the share of correct figures, with a target of ≥ 95%. It runs on demand, not in CI, because it needs real PDFs and AWS credentials.
   - A Zod contract test checks that malformed model output is rejected as a failed extraction.
   - All flow and UI work downstream uses the fake Extractor.
-- **Not tested at a seam:** the Confirm UI, PDF rendering and persistence are covered by a manual end-to-end run on one real package (target: under 10 minutes for a Property Manager).
+- **Seam 3: Check Report PDF export (`renderCheckReportPdf`).** Renders a stored Check Report and reads the text back with pdf.js, asserting what the PDF shows (header facts, every Check Result, Finding details, order, disclaimer). It never asserts on layout.
+- **Not tested at a seam:** the Confirm UI, the PDF's visual layout and persistence are covered by a manual end-to-end run on one real package (target: under 10 minutes for a Property Manager).
 - **Prior art:** none yet. The repo has no code, so these tests set the pattern.
 
 ## Out of Scope

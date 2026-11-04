@@ -1,0 +1,22 @@
+# Monitoring: checks production every 30 minutes. GitHub emails a failed run
+# to whoever last changed this schedule. Also runnable by hand (Actions tab).
+name: Uptime
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+env:
+  PRODUCTION_URL: https://heizcheck-khaki.vercel.app
+
+jobs:
+  production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: GET /api/health
+        run: |
+          curl -s --retry 2 --retry-delay 10 --max-time 20 -o health.json -w 'HTTP %{http_code}\n' "$PRODUCTION_URL/api/health"
+          cat health.json; echo
+          jq -e '.ok == true' health.json

@@ -1,0 +1,109 @@
+{
+  "description": "Image-only: five Units, CO₂ given in full, areas with 1 decimal. Pages are pictures, so no text layer.",
+  "imageOnly": true,
+  "figures": {
+    "building": {
+      "billingPeriod": {
+        "start": "2025-01-01",
+        "end": "2025-12-31"
+      },
+      "costItems": [
+        {
+          "name": "Brennstoffkosten Erdgas",
+          "amountCents": 701900
+        },
+        {
+          "name": "Betriebsstrom",
+          "amountCents": 15300
+        },
+        {
+          "name": "Wartung",
+          "amountCents": 27400
+        },
+        {
+          "name": "Verbrauchsabrechnung",
+          "amountCents": 41200
+        }
+      ],
+      "totalCostCents": 785800,
+      "heatingConsumptionSharePct": 70,
+      "hotWaterConsumptionSharePct": 70,
+      "allocationMethod": "consumption_split",
+      "totalAreaM2": 362.5,
+      "areaDecimals": 1,
+      "fuel": {
+        "type": "Erdgas",
+        "quantity": 81900,
+        "unit": "kWh"
+      },
+      "co2": {
+        "totalKg": 16544,
+        "statedKgPerM2Year": 45.6,
+        "statedTier": 7,
+        "statedSplit": {
+          "landlordPct": 60,
+          "tenantPct": 40
+        },
+        "costCents": 82720,
+        "statedReduction": "none"
+      }
+    },
+    "units": [
+      {
+        "unitId": "WE 01",
+        "billingPeriod": {
+          "start": "2025-01-01",
+          "end": "2025-12-31"
+        },
+        "areaM2": 72.5,
+        "consumption": 7010,
+        "amountCents": 157300,
+        "estimated": false
+      },
+      {
+        "unitId": "WE 02",
+        "billingPeriod": {
+          "start": "2025-01-01",
+          "end": "2025-12-31"
+        },
+        "areaM2": 72.5,
+        "consumption": 7340,
+        "amountCents": 163100,
+        "estimated": false
+      },
+      {
+        "unitId": "WE 03",
+        "billingPeriod": {
+          "start": "2025-01-01",
+          "end": "2025-12-31"
+        },
+        "areaM2": 72.5,
+        "consumption": 6620,
+        "amountCents": 149800,
+        "estimated": false
+      },
+      {
+        "unitId": "WE 04",
+        "billingPeriod": {
+          "start": "2025-01-01",
+          "end": "2025-12-31"
+        },
+        "areaM2": 72.5,
+        "consumption": 7480,
+        "amountCents": 166200,
+        "estimated": false
+      },
+      {
+        "unitId": "WE 05",
+        "billingPeriod": {
+          "start": "2025-01-01",
+          "end": "2025-12-31"
+        },
+        "areaM2": 72.5,
+        "consumption": 6850,
+        "amountCents": 149400,
+        "estimated": false
+      }
+    ]
+  }
+}

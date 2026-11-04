@@ -14,6 +14,6 @@ See the spec: modules 8 and 9.
 
 - [ ] A Property Manager can invite a colleague by email. The invited colleague joins the same Organisation with equal rights.
 - [ ] A Property Manager can download the AV-Vertrag. It names AWS `eu-west-1` (Ireland) as the processing location for extraction.
-- [ ] A scheduled job deletes PDFs from storage, and packages and Check Reports from the database, 4 years after they were created.
-- [ ] A test proves the job deletes only items older than 4 years.
-- [ ] The retention job is the only thing that ever deletes a Check Report.
+- [x] A scheduled job deletes PDFs from storage, and packages and Check Reports from the database, 4 years after they were created.
+- [x] A test proves the job deletes only items older than 4 years.
+- [x] The retention job is the only thing that ever deletes a Check Report.

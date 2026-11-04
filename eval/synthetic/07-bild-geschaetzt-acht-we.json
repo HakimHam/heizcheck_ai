@@ -1,0 +1,144 @@
+{
+  "description": "Image-only, other wording: eight Units, three estimated, CO₂ costs not split as claimed. Planted: total cost differs from the sum of the Cost Items.",
+  "imageOnly": true,
+  "wording": "b",
+  "figures": {
+    "building": {
+      "billingPeriod": {
+        "start": "2025-01-01",
+        "end": "2025-12-31"
+      },
+      "costItems": [
+        {
+          "name": "Heizöl EL",
+          "amountCents": 903000
+        },
+        {
+          "name": "Betriebsstrom Heizung",
+          "amountCents": 16800
+        },
+        {
+          "name": "Wartung",
+          "amountCents": 29900
+        },
+        {
+          "name": "Tankreinigung",
+          "amountCents": 14300
+        },
+        {
+          "name": "Verbrauchserfassung und Abrechnung",
+          "amountCents": 58700
+        }
+      ],
+      "totalCostCents": 1032700,
+      "heatingConsumptionSharePct": 70,
+      "hotWaterConsumptionSharePct": 70,
+      "allocationMethod": "consumption_split",
+      "totalAreaM2": 612.0,
+      "areaDecimals": 1,
+      "fuel": {
+        "type": "Heizöl",
+        "quantity": 8610,
+        "unit": "l"
+      },
+      "co2": {
+        "totalKg": 22846,
+        "statedKgPerM2Year": 37.3,
+        "statedTier": 5,
+        "statedSplit": null,
+        "costCents": 114230,
+        "statedReduction": "no_split"
+      }
+    },
+    "units": [
+      {
+        "unitId": "Nr. 1",
+        "billingPeriod": {
+          "start": "2025-01-01",
+          "end": "2025-12-31"
+        },
+        "areaM2": 76.5,
+        "consumption": 6850,
+        "amountCents": 128900,
+        "estimated": true
+      },
+      {
+        "unitId": "Nr. 2",
+        "billingPeriod": {
+          "start": "2025-01-01",
+          "end": "2025-12-31"
+        },
+        "areaM2": 76.5,
+        "consumption": 7120,
+        "amountCents": 131200,
+        "estimated": false
+      },
+      {
+        "unitId": "Nr. 3",
+        "billingPeriod": {
+          "start": "2025-01-01",
+          "end": "2025-12-31"
+        },
+        "areaM2": 76.5,
+        "consumption": 6400,
+        "amountCents": 124800,
+        "estimated": false
+      },
+      {
+        "unitId": "Nr. 4",
+        "billingPeriod": {
+          "start": "2025-01-01",
+          "end": "2025-12-31"
+        },
+        "areaM2": 76.5,
+        "consumption": 7550,
+        "amountCents": 135700,
+        "estimated": true
+      },
+      {
+        "unitId": "Nr. 5",
+        "billingPeriod": {
+          "start": "2025-01-01",
+          "end": "2025-12-31"
+        },
+        "areaM2": 76.5,
+        "consumption": 6980,
+        "amountCents": 129600,
+        "estimated": false
+      },
+      {
+        "unitId": "Nr. 6",
+        "billingPeriod": {
+          "start": "2025-01-01",
+          "end": "2025-12-31"
+        },
+        "areaM2": 76.5,
+        "consumption": 7210,
+        "amountCents": 131900,
+        "estimated": false
+      },
+      {
+        "unitId": "Nr. 7",
+        "billingPeriod": {
+          "start": "2025-01-01",
+          "end": "2025-12-31"
+        },
+        "areaM2": 76.5,
+        "consumption": 6770,
+        "amountCents": 127300,
+        "estimated": true
+      },
+      {
+        "unitId": "Nr. 8",
+        "billingPeriod": {
+          "start": "2025-01-01",
+          "end": "2025-12-31"
+        },
+        "areaM2": 76.5,
+        "consumption": 7300,
+        "amountCents": 133200,
+        "estimated": false
+      }
+    ]
+  }
+}

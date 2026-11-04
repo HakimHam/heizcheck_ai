@@ -17,3 +17,4 @@ We call Claude through Bedrock because it is the only route we found that pins p
 - We stay on Sonnet 5 rather than Sonnet 5.5, because Sonnet 5.5 is only offered through Bedrock's Global profile, which does not keep data in the EU. Revisit when an EU option appears.
 - The Bedrock model card lists structured outputs as unsupported for Sonnet 5. If they are rejected, get the fixed schema through a strict tool and validate the result with Zod.
 - Supabase holds PDFs and Check Reports under the 4-year retention period, so deletion has to be enforced there.
+- Development note (2026-10-04): until AWS access is set up, a dev-only transport calls the Claude API directly with the same model (`claude-sonnet-5`), prompt and tool schema (ticket 11). It is for synthetic or anonymised PDFs only, never real Tenant data. The app refuses to use it when `VERCEL_ENV=production`. This decision still stands: production extraction runs only through Bedrock in `eu-west-1` (ticket 17).
