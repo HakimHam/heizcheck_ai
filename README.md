@@ -165,4 +165,8 @@ Before changing behavior, add or update a test that captures the expected outcom
 
 ## License
 
-This project does not currently declare a license in the root of the repository. If you plan to distribute or reuse it, confirm the licensing before publication.
+🔒 License / Intellectual Property
+
+All rights reserved. This code is published solely for viewing and demonstration purposes as part of my portfolio.
+It is strictly prohibited to copy, modify, distribute, or reuse any part of the code in this project for personal or commercial purposes without prior written permission.
+
