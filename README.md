@@ -4,6 +4,7 @@ HeizCheck is a quality gate for German property managers: it checks heating cost
 
 The project keeps the legal domain language in [CONTEXT.md](CONTEXT.md) and records architecture decisions in [docs/adr](docs/adr/). The app is designed for the German residential rental workflow, not for condominium administration or general billing software.
 
+**Author:** https://www.linkedin.com/in/hakim-h-a69871396/ · Open to Software Engineering roles in Germany (Stuttgart / Remote)
 ## What the product does
 
 HeizCheck helps a property manager review a full statement package for one building and billing period:
