@@ -3,8 +3,9 @@
 HeizCheck is a quality gate for German property managers: it checks heating cost statements from a metering provider before they are sent to tenants.
 
 The project keeps the legal domain language in [CONTEXT.md](CONTEXT.md) and records architecture decisions in [docs/adr](docs/adr/). The app is designed for the German residential rental workflow, not for condominium administration or general billing software.
+**[Live Demo — Try HeizCheck Online]https://heizcheck-khaki.vercel.app/** 
+**Author:** https://www.linkedin.com/in/hakim-h-a69871396/ · 
 
-**Author:** https://www.linkedin.com/in/hakim-h-a69871396/ · Open to Software Engineering roles in Germany (Stuttgart / Remote)
 ## What the product does
 
 HeizCheck helps a property manager review a full statement package for one building and billing period:
@@ -170,4 +171,7 @@ Before changing behavior, add or update a test that captures the expected outcom
 
 All rights reserved. This code is published solely for viewing and demonstration purposes as part of my portfolio.
 It is strictly prohibited to copy, modify, distribute, or reuse any part of the code in this project for personal or commercial purposes without prior written permission.
+- **LinkedIn:** https://www.linkedin.com/in/hakim-h-a69871396/
+- **Email:** ai.engineering.hakim@gmail.com
+
 
